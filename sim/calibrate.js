@@ -1,6 +1,11 @@
 // Fits the win-chance meter against real outcomes and writes src/calibration.js.
 //
-//   node sim/calibrate.js [--games 1500] [--buckets 6] [--threads 12]
+//   node sim/calibrate.js                collect self-play samples, then fit
+//   node sim/calibrate.js --refit        fit again from the samples already collected
+//
+// Collecting takes half an hour; fitting takes a moment. They are separate so that a fit can be
+// corrected without paying for the games again -- which is not hypothetical: the first fit here
+// diverged and had to be redone.
 //
 // The page shows a percentage next to each player. Until now that came from 1/(1+exp(-eval/7)),
 // a shape nobody had ever checked against a result. This plays thousands of games, records the
@@ -23,27 +28,65 @@ const THREADS = +arg('threads', Math.max(1, cores - 4));
 const CHUNK = +arg('chunk', 20);
 const OUT_JSON = arg('out', 'docs/measurements/calibration.json');
 const OUT_JS = arg('js', 'src/calibration.js');
+const SAMPLES = arg('samples', 'sim/out/calibration-samples.bin');
+const REFIT = process.argv.includes('--refit');
 
-const sigmoid = z => 1 / (1 + Math.exp(-z));
+const sigmoid = z => (z >= 0 ? 1 / (1 + Math.exp(-z)) : Math.exp(z) / (1 + Math.exp(z)));
 
-// Newton-Raphson on the log-loss for P = sigmoid(a*v + b). Two parameters, so this converges fast.
-function fitLogistic(v, y, w) {
-  let a = 0.15, b = 0;
-  for (let it = 0; it < 60; it++) {
-    let g0 = 0, g1 = 0, h00 = 1e-6, h01 = 0, h11 = 1e-6;
-    for (let i = 0; i < v.length; i++) {
-      const wi = w ? w[i] : 1;
-      const p = sigmoid(a * v[i] + b), e = (p - y[i]) * wi, q = p * (1 - p) * wi;
+// A search value is in points, and a runaway one carries no more information than a large one:
+// past this the position is winning and the model should not be asked to distinguish degrees.
+const CLIP = 30;
+const clip = v => (v > CLIP ? CLIP : v < -CLIP ? -CLIP : v);
+
+// Fits P = sigmoid(a*v + b) by penalised maximum likelihood.
+//
+// The first version of this was plain Newton-Raphson, and it blew up: one overlong step saturated
+// every probability, which flattened the Hessian to nothing, and the fit was left with a = 4e10.
+// That single bucket made the shipped model worse than the formula it replaced. Three things stop
+// it now -- a ridge penalty so the likelihood cannot run off to infinity, a backtracking line
+// search so a step is only taken if it actually lowers the loss, and returning the best parameters
+// seen rather than the last ones.
+function penalisedLoss(v, y, a, b, lambda) {
+  let L = 0;
+  for (let i = 0; i < v.length; i++) {
+    const z = a * v[i] + b;
+    // log(1+exp(z)) computed without overflowing
+    const soft = z > 0 ? z + Math.log1p(Math.exp(-z)) : Math.log1p(Math.exp(z));
+    L += soft - y[i] * z;
+  }
+  return L / Math.max(1, v.length) + lambda * (a * a + b * b);
+}
+
+function fitLogistic(v, y, lambda = 1e-4) {
+  if (!v.length) return { a: 0.1, b: 0, n: 0, loss: null };
+  let a = 0.1, b = 0;
+  let best = { a, b, loss: penalisedLoss(v, y, a, b, lambda) };
+  const n = v.length;
+  for (let it = 0; it < 200; it++) {
+    let g0 = 0, g1 = 0, h00 = 0, h01 = 0, h11 = 0;
+    for (let i = 0; i < n; i++) {
+      const p = sigmoid(a * v[i] + b), e = p - y[i], q = p * (1 - p);
       g0 += e * v[i]; g1 += e;
       h00 += q * v[i] * v[i]; h01 += q * v[i]; h11 += q;
     }
+    g0 = g0 / n + 2 * lambda * a; g1 = g1 / n + 2 * lambda * b;
+    h00 = h00 / n + 2 * lambda + 1e-9; h11 = h11 / n + 2 * lambda + 1e-9; h01 = h01 / n;
     const det = h00 * h11 - h01 * h01;
-    if (!isFinite(det) || Math.abs(det) < 1e-12) break;
+    if (!isFinite(det) || Math.abs(det) < 1e-14) break;
     const da = (h11 * g0 - h01 * g1) / det, db = (h00 * g1 - h01 * g0) / det;
-    a -= da; b -= db;
-    if (Math.abs(da) < 1e-10 && Math.abs(db) < 1e-10) break;
+    if (!isFinite(da) || !isFinite(db)) break;
+    // only move if the loss goes down, halving the step until it does
+    let step = 1, moved = false;
+    for (let k = 0; k < 30; k++) {
+      const na = a - step * da, nb = b - step * db;
+      const loss = penalisedLoss(v, y, na, nb, lambda);
+      if (isFinite(loss) && loss < best.loss - 1e-12) { a = na; b = nb; best = { a, b, loss }; moved = true; break; }
+      step /= 2;
+    }
+    if (!moved) break;
+    if (Math.abs(step * da) < 1e-9 && Math.abs(step * db) < 1e-9) break;
   }
-  return { a, b };
+  return { a: best.a, b: best.b, n, loss: best.loss };
 }
 
 const logLoss = (p, y) => { const e = 1e-9; return -(y * Math.log(Math.max(e, p)) + (1 - y) * Math.log(Math.max(e, 1 - p))); };
@@ -67,6 +110,38 @@ function reliability(preds, ys, bins = 10) {
   return { rows, worstGapOver30: +gap.toFixed(3) };
 }
 
+// Samples are stored packed rather than as JSON: 121k of them, six numbers each.
+function saveSamples(file, cols) {
+  const n = cols.V.length;
+  const buf = Buffer.alloc(4 + n * 14);
+  buf.writeUInt32LE(n, 0);
+  for (let i = 0; i < n; i++) {
+    const o = 4 + i * 14;
+    buf.writeFloatLE(cols.V[i], o);
+    buf.writeFloatLE(cols.PH[i], o + 4);
+    buf.writeUInt8(Math.round(cols.Y[i] * 2), o + 8);     // 0, 1 or 2 for loss, draw, win
+    buf.writeUInt8(cols.GOLD[i], o + 9);
+    buf.writeUInt8(cols.D[i], o + 10);
+    buf.writeUInt8(0, o + 11);
+    buf.writeUInt16LE(cols.G[i] % 65536, o + 12);         // game id, only needed to group
+  }
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, buf);
+  return buf.length;
+}
+function loadSamples(file) {
+  const buf = fs.readFileSync(file);
+  const n = buf.readUInt32LE(0);
+  const c = { V: [], PH: [], Y: [], GOLD: [], D: [], G: [] };
+  for (let i = 0; i < n; i++) {
+    const o = 4 + i * 14;
+    c.V.push(buf.readFloatLE(o)); c.PH.push(buf.readFloatLE(o + 4));
+    c.Y.push(buf.readUInt8(o + 8) / 2); c.GOLD.push(buf.readUInt8(o + 9));
+    c.D.push(buf.readUInt8(o + 10)); c.G.push(buf.readUInt16LE(o + 12));
+  }
+  return c;
+}
+
 (async () => {
   const jobs = [];
   for (const [depth, games] of Object.entries(GAMES_PER_DEPTH)) {
@@ -78,13 +153,16 @@ function reliability(preds, ys, bins = 10) {
     }
   }
   const totalGames = jobs.reduce((a, j) => a + j.games, 0);
-  console.log(`calibration: ${totalGames} self-play games (${Object.entries(GAMES_PER_DEPTH).map(([d, g]) => `${g} at depth ${d}`).join(', ')}),`);
-  console.log(`10% random moves and a 35% chance of a swap, so the meter is fitted on the kind of`);
-  console.log(`positions a real game reaches, not only on ones a tidy engine walks into. ${THREADS} threads.`);
+  if (REFIT) console.log(`refitting from ${SAMPLES}, no games played`);
+  else console.log(`calibration: ${totalGames} self-play games (${Object.entries(GAMES_PER_DEPTH).map(([d, g]) => `${g} at depth ${d}`).join(', ')}),`);
+  if (!REFIT) {
+    console.log(`10% random moves and a 35% chance of a swap, so the meter is fitted on the kind of`);
+    console.log(`positions a real game reaches, not only on ones a tidy engine walks into. ${THREADS} threads.`);
+  }
 
   let last = -1;
   const t0 = Date.now();
-  const results = await runPool(path.join(__dirname, 'calibWorker.js'), jobs, {
+  const results = REFIT ? [] : await runPool(path.join(__dirname, 'calibWorker.js'), jobs, {
     threads: THREADS,
     onProgress: (d, n, ms) => {
       const pct = Math.floor(100 * d / n / 10) * 10;
@@ -95,14 +173,24 @@ function reliability(preds, ys, bins = 10) {
 
   // flatten, dropping positions where the search already sees a forced result (the page shows
   // 99%/1% for those and does not consult the model)
-  const V = [], PH = [], Y = [], D = [], G = [], GOLD = [];
+  let V = [], PH = [], Y = [], D = [], G = [], GOLD = [];
   let gold = 0, drawn = 0, games = 0, forcedDropped = 0;
   for (const r of results) {
     games += r.games; gold += r.goldWins; drawn += r.draws;
     for (let i = 0; i < r.v.length; i++) {
       if (r.forced[i]) { forcedDropped++; continue; }
-      V.push(r.v[i]); PH.push(r.phase[i]); Y.push(r.y[i]); D.push(r.depth); G.push(r.gameOf[i]); GOLD.push(r.gold[i]);
+      V.push(clip(r.v[i])); PH.push(r.phase[i]); Y.push(r.y[i]); D.push(r.depth); G.push(r.gameOf[i]); GOLD.push(r.gold[i]);
     }
+  }
+  if (REFIT) {
+    const c = loadSamples(SAMPLES);
+    V = c.V.map(clip); PH = c.PH; Y = c.Y; D = c.D; G = c.G; GOLD = c.GOLD;
+    const meta = JSON.parse(fs.readFileSync(OUT_JSON, 'utf8'));
+    games = meta.games || Math.round(meta.positions / 39); gold = Math.round(games * meta.gamesGoldWinRate); drawn = Math.round(games * meta.drawRate);
+    console.log(`loaded ${V.length} samples from ${SAMPLES}`);
+  } else {
+    const bytes = saveSamples(SAMPLES, { V, PH, Y, GOLD, D, G });
+    console.log(`samples saved to ${SAMPLES} (${(bytes / 1048576).toFixed(1)} MB) -- rerun with --refit to fit again without replaying`);
   }
   const secs = (Date.now() - t0) / 1000;
   console.log(`\n${games} games, ${V.length} positions kept (${forcedDropped} dropped as already decided) in ${Math.round(secs)}s`);
@@ -123,6 +211,9 @@ function reliability(preds, ys, bins = 10) {
       const v = [], y = [];
       for (let i = 0; i < V.length; i++) if (!isTest[i] && GOLD[i] === side && bucketOf(PH[i]) === k) { v.push(V[i]); y.push(Y[i]); }
       const { a, b } = fitLogistic(v, y);
+      if (!isFinite(a) || !isFinite(b) || Math.abs(a) > 5 || Math.abs(b) > 10) {
+        throw new Error(`the fit did not converge for side ${side} bucket ${k}: a=${a}, b=${b}`);
+      }
       fitted[side].push({ phaseFrom: k / BUCKETS, phaseTo: (k + 1) / BUCKETS, centre: centres[k], n: v.length, a: +a.toFixed(5), b: +b.toFixed(5) });
       console.log(`  ${side ? 'gold' : 'turq'} to move, phase ${(100 * k / BUCKETS).toFixed(0)}-${(100 * (k + 1) / BUCKETS).toFixed(0)}%: ${String(v.length).padStart(6)} positions   P = sigmoid(${a.toFixed(4)} * value ${b >= 0 ? '+' : '-'} ${Math.abs(b).toFixed(4)})`);
     }
@@ -177,7 +268,7 @@ function reliability(preds, ys, bins = 10) {
     what: 'Win-chance meter fitted against self-play outcomes.',
     how: `node sim/calibrate.js  (${games} games, ${Object.entries(GAMES_PER_DEPTH).map(([d, g]) => `${g} at depth ${d}`).join(', ')}, 10% random moves, 35% swap chance)`,
     date: new Date().toISOString().slice(0, 10),
-    positions: V.length, heldOut: before.n, gamesGoldWinRate: gold / games, drawRate: drawn / games,
+    games, positions: V.length, heldOut: before.n, gamesGoldWinRate: gold / games, drawRate: drawn / games,
     model: 'P(gold wins) = sigmoid(a * searchValue + b), with a and b fitted per game phase and per side to move, interpolated between bucket centres',
     buckets: { turquoiseToMove: fitted[0], goldToMove: fitted[1] }, centres,
     heldOutMetrics: { alwaysBaseRate: base, oldFormula: before, fitted: after },
