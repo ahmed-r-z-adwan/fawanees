@@ -33,10 +33,6 @@ test('the manifest says everything an install prompt needs', () => {
 });
 
 test('the single file stays standalone: no manifest, no service worker, no extra requests', async () => {
-  const html = fs.readFileSync(path.join(ROOT, 'dist', 'fawanees.html'), 'utf8');
-  assert.ok(!/rel=["']manifest/.test(html), 'the single file must not ask for a manifest');
-  assert.ok(!/serviceWorker/.test(html), 'and must not register a service worker');
-
   const server = await serve(path.join(ROOT, 'dist'));
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
@@ -45,6 +41,19 @@ test('the single file stays standalone: no manifest, no service worker, no extra
     page.on('request', r => { const u = new URL(r.url()); if (u.origin !== new URL(server.url).origin) external.push(u.hostname); });
     await page.goto(server.url + '/fawanees.html', { waitUntil: 'networkidle0' });
     await page.waitForFunction('window.__fw && window.__fw.game');
+
+    // Ask the DOM, not the source text: the page legitimately *queries* for a manifest link to
+    // decide whether it can offer to install, which a string match reads as declaring one.
+    const declares = await page.evaluate(async () => ({
+      manifest: !!document.querySelector('link[rel="manifest"]'),
+      registered: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
+      // awaited here: a promise nested inside a returned object is not awaited for us
+      registrations: navigator.serviceWorker ? (await navigator.serviceWorker.getRegistrations()).length : 0,
+    }));
+    assert.strictEqual(declares.manifest, false, 'the single file must not declare a manifest');
+    assert.strictEqual(declares.registered, false, 'and must not be under a service worker');
+    assert.strictEqual(declares.registrations, 0, 'and must not register one');
+
     const hosts = [...new Set(external)];
     assert.deepStrictEqual(hosts.filter(h => !/^fonts\.(googleapis|gstatic)\.com$/.test(h)), [],
       `the only outside requests allowed are Google Fonts, saw ${hosts.join(', ')}`);

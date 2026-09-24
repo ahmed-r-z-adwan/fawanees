@@ -21,8 +21,11 @@ async function openPage(browser, url, viewport) {
   return { page, errors };
 }
 
+// Re-measure before every click. A stale box silently clicks the wrong cell, and the test would
+// then be asserting nothing -- which is how a dialog that resized on feedback stayed hidden.
+async function boardBox(page) { return (await page.$('#learnBoard')).boundingBox(); }
 async function clickTarget(page) {
-  const box = await (await page.$('#learnBoard')).boundingBox();
+  const box = await boardBox(page);
   const [x, y] = await page.evaluate(() => window.__fw.tutorial().targetXY());
   await page.mouse.click(box.x + x, box.y + y);
 }
@@ -44,11 +47,17 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 900 }], ['ph
         assert.strictEqual(await page.evaluate(() => window.__fw.tutorial().stage), 'task');
 
         // A wrong cell must not advance the lesson.
-        const box = await (await page.$('#learnBoard')).boundingBox();
+        const box = await boardBox(page);
         const [tx, ty] = await page.evaluate(() => window.__fw.tutorial().targetXY());
         await page.mouse.click(box.x + Math.max(6, tx - box.width * 0.30), box.y + ty);
         assert.strictEqual(await page.evaluate(() => window.__fw.tutorial().stage), 'task',
           `${lesson.id}: clicking the wrong cell must not finish the lesson`);
+
+        // and showing that feedback must not have moved the board
+        const after = await boardBox(page);
+        assert.deepStrictEqual([after.x, after.y, after.width, after.height],
+          [box.x, box.y, box.width, box.height],
+          `${lesson.id}: the board moved when the wrong-cell message appeared`);
 
         await clickTarget(page);
         assert.strictEqual(await page.evaluate(() => window.__fw.tutorial().stage), 'result',
