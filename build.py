@@ -10,6 +10,7 @@ from pathlib import Path
 root = Path(__file__).parent
 
 SOURCES = (
+    ('/*RELAY*/', 'src/relay.js'),
     ('/*ENGINE*/', 'src/engine.js'),
     ('/*WORKER*/', 'src/worker.js'),
     ('/*LESSONS*/', 'src/lessons.js'),

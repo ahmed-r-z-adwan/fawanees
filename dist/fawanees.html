@@ -71,10 +71,26 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
 .install .btn { flex: 0 0 auto; }
 .install .x { background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1;
   cursor: pointer; padding: 2px 6px; }
-.linkbar { display: flex; align-items: center; gap: 10px; }
-.linkbar .linkturn { flex: 1 1 auto; font-weight: 700; }
-#btnShare { display: inline-flex; align-items: center; gap: 7px; }
+.linkbar { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+.linkbar .linkturn { font-weight: 700; }
+.linkbar .linkrow { display: flex; gap: 8px; }
+.linkbar .linkrow .btn { flex: 1 1 auto; }
+#btnShare { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 #btnShare svg { flex: 0 0 auto; }
+/* The waiting room. Your friend is either here or not, so the whole state is a dot and a line. */
+.peer { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.peer .dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #5a5382; }
+.peer.here .dot { background: #4ad07a; box-shadow: 0 0 0 4px rgba(74, 208, 122, .16); }
+.peer.here { color: #b7f0cb; }
+.peer.waiting .dot { background: var(--amber); animation: peerPulse 1.4s ease-in-out infinite; }
+.peer.waiting { color: #ffe2a0; }
+.peer.gone .dot { background: #e06a6a; }
+.peer.gone { color: #ffbdbd; }
+@keyframes peerPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(.75); } }
+@media (prefers-reduced-motion: reduce) { .peer.waiting .dot { animation: none; } }
+.roomcode { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .16em;
+  font-size: 20px; font-weight: 700; color: #f6ead0; direction: ltr; unicode-bidi: isolate; text-align: center;
+  background: #1a1536; border: 1px dashed #4b4480; border-radius: 10px; padding: 6px 4px; }
 footer { margin-top: 18px; color: #7e77a3; font-size: 13px; text-align: center; }
 footer a { color: var(--muted); }
 dialog { background: #1e1938; color: var(--text); border: 1px solid var(--line); border-radius: 18px; padding: 20px; max-width: min(560px, 92vw); max-height: 86vh; overflow: auto; }
@@ -155,8 +171,13 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         <button class="btn" id="btnHint" data-i18n="hint">تلميح</button>
       </div>
       <div class="card linkbar" id="linkBar" hidden>
+        <div class="peer" id="peerRow" hidden><span class="dot"></span><span id="peerText"></span></div>
+        <div class="roomcode" id="roomCode" hidden></div>
         <div class="linkturn" id="linkTurn"></div>
-        <button class="btn primary" id="btnShare"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg><span id="btnShareText"></span></button>
+        <div class="linkrow">
+          <button class="btn primary" id="btnShare"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg><span id="btnShareText"></span></button>
+          <button class="btn" id="btnLeave" hidden></button>
+        </div>
       </div>
       <div class="toggles card">
         <label><input type="checkbox" id="optThoughts" checked> <span data-i18n="showThoughts">أظهر خطة الآلة على اللوح</span></label>
@@ -177,7 +198,8 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
   <div class="field-label" data-i18n="mode">طريقة اللعب</div>
   <div class="seg" id="segMode">
     <button data-v="ai" aria-pressed="true" data-i18n="modeAI">ضد الآلة</button>
-    <button data-v="pvp" aria-pressed="false" data-i18n="modePvP">مع صاحبك: بالرابط أو على نفس الجهاز</button>
+    <button data-v="online" aria-pressed="false" data-i18n="modeOnline">مع صاحبك على جهاز تاني</button>
+    <button data-v="pvp" aria-pressed="false" data-i18n="modePvP">لاعبان على نفس الجهاز</button>
     <button data-v="demo" aria-pressed="false" data-i18n="modeDemo">شاهد الآلة ضد نفسها</button>
   </div>
   <div id="aiOpts">
@@ -272,6 +294,245 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
 </dialog>
 
 <!-- The engine runs here AND is read back as text to build the worker, so it is inlined once. -->
+<script>
+// Two devices, no backend.
+//
+// The page is a static file with nowhere to put a server, so for a game across two phones it
+// borrows a public MQTT broker as a post box: both devices connect to the same broker over a
+// secure WebSocket, subscribe to one room, and publish to it. The broker sees a random room id
+// and a list of move numbers, nothing else.
+//
+// MQTT is used rather than WebRTC because it always connects. A peer-to-peer link is nicer in
+// principle, but mobile carriers put phones behind NAT that a direct connection cannot cross
+// without a relay of its own, so "it works on my wifi" turns into "it fails on my friend's data".
+// A broker relays, so there is nothing to negotiate.
+//
+// Presence falls out of the protocol for free, which is the reason for the whole choice:
+//
+//   * A "last will and testament" is a message the broker publishes on your behalf when your
+//     connection dies. Set it to "I am gone" and the other player finds out whether you closed
+//     the tab, locked the phone, or walked out of signal.
+//   * A "retained" message is kept by the broker and handed to whoever subscribes next, so the
+//     player who arrives second is given the position immediately instead of waiting for a move.
+//
+// It is written by hand instead of pulling in a library because the published page stays one
+// self-contained file, and the four packet types this needs are about two hundred lines.
+(function (root) {
+  'use strict';
+
+  // Public brokers that take anonymous connections over wss. They are free test services, so any
+  // one of them can be down; a room records which one it was opened on, because both players must
+  // sit on the same broker to hear each other.
+  const BROKERS = [
+    'wss://broker.emqx.io:8084/mqtt',
+    'wss://broker.hivemq.com:8884/mqtt',
+    'wss://test.mosquitto.org:8081/',
+  ];
+
+  const PREFIX = 'fawanees/v1/';
+  const KEEPALIVE = 20;      // seconds. A peer that vanishes without warning is noticed in ~1.5x this.
+  const EMPTY = '-';         // a game with no moves yet; an empty payload would delete the retained state
+
+  const textEnc = new TextEncoder(), textDec = new TextDecoder();
+
+  // ---------------- MQTT 3.1.1, the parts we use ----------------
+
+  function mqttStr(s) {
+    const b = textEnc.encode(s);
+    const out = new Uint8Array(b.length + 2);
+    out[0] = b.length >> 8; out[1] = b.length & 255;
+    out.set(b, 2);
+    return out;
+  }
+
+  function varint(n) {
+    const out = [];
+    do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; out.push(d); } while (n > 0);
+    return Uint8Array.from(out);
+  }
+
+  function build(type, flags, parts) {
+    let len = 0;
+    for (const p of parts) len += p.length;
+    const head = varint(len);
+    const out = new Uint8Array(1 + head.length + len);
+    out[0] = (type << 4) | flags;
+    out.set(head, 1);
+    let at = 1 + head.length;
+    for (const p of parts) { out.set(p, at); at += p.length; }
+    return out;
+  }
+
+  function connectPacket(clientId, will) {
+    let flags = 0x02;                                        // clean session
+    const payload = [mqttStr(clientId)];
+    if (will) {
+      flags |= 0x04 | 0x20;                                  // will flag, will retained, will QoS 0
+      payload.push(mqttStr(will.topic), mqttStr(will.payload));
+    }
+    return build(1, 0, [mqttStr('MQTT'), Uint8Array.of(4), Uint8Array.of(flags),
+                        Uint8Array.of(KEEPALIVE >> 8, KEEPALIVE & 255)].concat(payload));
+  }
+
+  const subscribePacket = (id, filter) =>
+    build(8, 2, [Uint8Array.of(id >> 8, id & 255), mqttStr(filter), Uint8Array.of(0)]);
+
+  const publishPacket = (topic, payload, retain) =>
+    build(3, retain ? 1 : 0, [mqttStr(topic), textEnc.encode(payload)]);
+
+  const PINGREQ = build(12, 0, []);
+  const DISCONNECT = build(14, 0, []);
+
+  // ---------------- one room ----------------
+
+  const rnd = (n) => {
+    let s = '';
+    const abc = 'abcdefghijkmnpqrstuvwxyz23456789';         // no look-alikes: a room id gets read aloud
+    const bytes = new Uint8Array(n);
+    (root.crypto || {}).getRandomValues ? root.crypto.getRandomValues(bytes)
+                                        : bytes.forEach((_, i) => { bytes[i] = (Math.random() * 256) | 0; });
+    for (let i = 0; i < n; i++) s += abc[bytes[i] % abc.length];
+    return s;
+  };
+
+  // A room id carries its broker in the first character, so a link always lands both players on
+  // the same one. Failing over to another broker mid-game would silently split the two devices.
+  const newRoomId = (brokerIndex) => String(brokerIndex) + rnd(7);
+  const brokerOf = (roomId) => {
+    const i = Number(roomId.charAt(0));
+    return Number.isInteger(i) && i >= 0 && i < BROKERS.length ? i : 0;
+  };
+
+  function join(o) {
+    const brokers = o.brokers || BROKERS;
+    const WS = o.WebSocket || root.WebSocket;
+    const url = brokers[o.brokerIndex != null ? o.brokerIndex : brokerOf(o.room)];
+    const token = o.token || rnd(6);
+    const base = PREFIX + o.room + '/';
+    const seat = o.seat, other = o.seat === 'a' ? 'b' : 'a';
+    const mine = base + 'p/' + seat, theirs = base + 'p/' + other, stateTopic = base + 's';
+    const say = (name, arg) => { try { (o[name] || (() => {}))(arg); } catch (e) {} };
+
+    let ws = null, buf = new Uint8Array(0), ping = null, retry = null, guard = null;
+    let tries = 0, live = false, closed = false, peerOnline = false, current = null;
+
+    const send = (bytes) => { if (ws && ws.readyState === 1) ws.send(bytes); };
+
+    function open() {
+      if (closed) return;
+      say('onStatus', 'connecting');
+      let sock;
+      try { sock = new WS(url, 'mqtt'); } catch (e) { return drop(); }
+      ws = sock;
+      sock.binaryType = 'arraybuffer';
+      // A broker that accepts the socket and then says nothing is the common failure; do not sit
+      // on a half-open connection waiting for a CONNACK that is not coming.
+      guard = setTimeout(() => { try { sock.close(); } catch (e) {} }, 9000);
+      sock.onopen = () => send(connectPacket('fw-' + seat + '-' + token + '-' + rnd(5),
+                                             { topic: mine, payload: '0:' + token }));
+      sock.onmessage = (ev) => feed(new Uint8Array(ev.data));
+      sock.onclose = () => { if (sock === ws) drop(); };
+      sock.onerror = () => {};
+    }
+
+    function ready() {
+      clearTimeout(guard);
+      live = true; tries = 0;
+      send(subscribePacket(1, base + '#'));
+      send(publishPacket(mine, '1:' + token, true));
+      clearInterval(ping);
+      ping = setInterval(() => send(PINGREQ), KEEPALIVE * 500);
+      say('onStatus', 'online');
+    }
+
+    function drop() {
+      clearTimeout(guard); clearInterval(ping);
+      const was = live;
+      live = false; ws = null; buf = new Uint8Array(0);
+      if (closed) return;
+      // Our own view of the peer is only as good as our connection to the broker.
+      if (peerOnline) { peerOnline = false; say('onPeer', false); }
+      if (was) say('onStatus', 'connecting');
+      const wait = Math.min(1000 * Math.pow(2, tries++), 10000);
+      clearTimeout(retry);
+      retry = setTimeout(open, wait);
+    }
+
+    function feed(chunk) {
+      const merged = new Uint8Array(buf.length + chunk.length);
+      merged.set(buf); merged.set(chunk, buf.length);
+      buf = merged;
+      for (;;) {
+        if (buf.length < 2) return;
+        let mul = 1, len = 0, i = 1, digit;
+        do {
+          if (i >= buf.length) return;                        // length prefix still arriving
+          if (i > 4) return drop();                           // not MQTT; give up on this socket
+          digit = buf[i++];
+          len += (digit & 127) * mul;
+          mul *= 128;
+        } while (digit & 128);
+        if (buf.length < i + len) return;
+        handle(buf[0] >> 4, buf[0] & 15, buf.subarray(i, i + len));
+        buf = buf.slice(i + len);
+        if (!ws) return;                                      // handle() closed us
+      }
+    }
+
+    function handle(type, flags, body) {
+      if (type === 2) return (body.length >= 2 && body[1] === 0) ? ready() : drop();
+      if (type !== 3) return;                                 // PUBLISH; PINGRESP and SUBACK need nothing
+      const n = (body[0] << 8) | body[1];
+      const topic = textDec.decode(body.subarray(2, 2 + n));
+      const qos = (flags >> 1) & 3;
+      const payload = textDec.decode(body.subarray(2 + n + (qos ? 2 : 0)));
+      if (topic === theirs) {
+        const on = payload.charAt(0) === '1';
+        if (on !== peerOnline) { peerOnline = on; say('onPeer', on); }
+      } else if (topic === mine) {
+        // Someone else opened this link and sat in my chair.
+        if (payload.charAt(0) === '1' && payload.slice(2) !== token) say('onSeatTaken');
+      } else if (topic === stateTopic && payload) {
+        if (payload === current) return;                      // our own echo, or nothing new
+        current = payload;
+        say('onState', payload === EMPTY ? '' : payload);
+      }
+    }
+
+    open();
+
+    return {
+      // The full move list after every move: whoever arrives late is handed the whole game.
+      publish(code) {
+        current = code || EMPTY;
+        send(publishPacket(stateTopic, current, true));
+      },
+      leave() {
+        if (closed) return;
+        closed = true;
+        clearInterval(ping); clearTimeout(retry); clearTimeout(guard);
+        if (live) { send(publishPacket(mine, '0:' + token, true)); send(DISCONNECT); }
+        try { ws && ws.close(); } catch (e) {}
+        ws = null; live = false;
+        if (peerOnline) { peerOnline = false; say('onPeer', false); }
+        say('onStatus', 'offline');
+      },
+      // What the room currently holds, so a caller can tell its own move from an echo.
+      get state() { return current === EMPTY ? '' : (current || ''); },
+      // A phone that was in the background has had its timers frozen; do not make it serve out
+      // the rest of a backoff it did not notice passing.
+      poke() { if (!closed && !live && !ws) { clearTimeout(retry); tries = 0; open(); } },
+      get online() { return live; },
+      get peerOnline() { return peerOnline; },
+      token, seat, room: o.room, url,
+    };
+  }
+
+  const api = { join, BROKERS, newRoomId, brokerOf, PREFIX, EMPTY };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.FawaneesRelay = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
 <script id="engineCode">
 // Fawanees engine: hex geometry, rules, and search. Works in the browser (window.Fawanees) and in Node.
 (function (root) {
@@ -1211,7 +1472,8 @@ const T = {
     title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
     showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
     credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة والنشر: أحمد عدوان.', how: 'كيف صُنعت؟',
-    mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'مع صاحبك: بالرابط أو على نفس الجهاز', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
+    mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على نفس الجهاز',
+    modeOnline: 'مع صاحبك على جهاز تاني', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
     lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
     gotIt: 'فهمت', close: 'إغلاق', again: 'العب مرة أخرى',
     gold: 'الذهبي', turq: 'الفيروزي', you: 'أنت', machine: 'الآلة', player: 'اللاعب',
@@ -1229,6 +1491,13 @@ const T = {
     shareBtn: 'شارك الرابط', shareCopied: 'نُسخ الرابط، ابعته لصاحبك',
     shareText: 'دورك في فوانيس', shareTurn: n => `دور ${n}. ابعتله الرابط ليلعب`,
     linkBad: 'الرابط غير صالح، بلّشنا لعبة جديدة', linkLoaded: 'تابعنا اللعبة من الرابط',
+    roomPrep: 'عم نجهّز الغرفة…', roomConnecting: 'عم نوصل بالغرفة…', roomLost: 'انقطع الاتصال، عم نرجّع…',
+    roomWaiting: 'عم نستنى صاحبك يدخل…', roomHere: 'صاحبك موجود', roomGone: 'صاحبك طلع من الغرفة',
+    roomNeedTwo: 'اللعب بيبلّش لما صاحبك يدخل', roomYourTurn: 'دورك أنت', roomTheirTurn: 'دور صاحبك',
+    roomShare: 'ابعت الرابط لصاحبك', roomCodeLabel: 'رمز الغرفة', leaveRoom: 'اطلع',
+    roomPeerJoined: 'صاحبك دخل، يلا العبوا', roomPeerLeft: 'صاحبك طلع من الغرفة',
+    roomTaken: 'في حدا تاني فتح نفس الرابط', roomLeft: 'طلعت من الغرفة', friend: 'صاحبك',
+    roomNoConnect: 'ما قدرنا نوصل. جرّب الإنترنت وافتح غرفة جديدة',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
@@ -1270,7 +1539,8 @@ const T = {
     title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
     showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
     credit: 'Rules, balancing and AI by Claude (Anthropic). Idea and publishing by Ahmed Adwan.', how: 'How was it made?',
-    mode: 'Mode', modeAI: 'Against the machine', modePvP: 'With a friend: by link, or on this device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
+    mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players on this device',
+    modeOnline: 'With a friend on another device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
     lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
     gotIt: 'Got it', close: 'Close', again: 'Play again',
     gold: 'Gold', turq: 'Turquoise', you: 'You', machine: 'Machine', player: 'Player',
@@ -1288,6 +1558,13 @@ const T = {
     shareBtn: 'Share the link', shareCopied: 'Link copied — send it to your friend',
     shareText: 'Your turn in Fawanees', shareTurn: n => `${n} to move. Send them the link to play`,
     linkBad: 'That link is not valid, so we started a new game', linkLoaded: 'Picked the game up from the link',
+    roomPrep: 'Setting the room up…', roomConnecting: 'Connecting to the room…', roomLost: 'Connection lost, reconnecting…',
+    roomWaiting: 'Waiting for your friend to join…', roomHere: 'Your friend is here', roomGone: 'Your friend left the room',
+    roomNeedTwo: 'The game starts when your friend joins', roomYourTurn: 'Your turn', roomTheirTurn: "Your friend's turn",
+    roomShare: 'Send the link to your friend', roomCodeLabel: 'Room code', leaveRoom: 'Leave',
+    roomPeerJoined: 'Your friend joined — play!', roomPeerLeft: 'Your friend left the room',
+    roomTaken: 'Someone else opened the same link', roomLeft: 'You left the room', friend: 'Your friend',
+    roomNoConnect: 'Could not connect. Check the network and open a new room',
     boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `The win-chance meter is fitted on ${g} self-play games. Log loss went from ${before} to ${after}.`,
@@ -1488,6 +1765,7 @@ function abortThinking() {
 
 function newGame(opts) {
   Object.assign(cfg, opts || {});
+  if (cfg.mode !== 'online') Online.leave();     // any other mode means we are done with the room
   if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
   abortThinking();
   game = new F.Game(RADIUS, RULES);
@@ -1499,8 +1777,12 @@ function newGame(opts) {
   setTimeout(nextTurn, 250);
 }
 
-const isHuman = p => cfg.mode === 'pvp' || (cfg.mode === 'ai' && p === cfg.human);
-const nameOf = p => cfg.mode === 'ai' ? (p === cfg.human ? t('you') : t('machine')) : (p === 1 ? t('gold') : t('turq'));
+// In a room only your own colour is yours; the other side is a person on another phone.
+const isHuman = p => Online.active() ? p === Online.colour()
+                   : cfg.mode === 'pvp' || (cfg.mode === 'ai' && p === cfg.human);
+const nameOf = p => Online.active() ? (p === Online.colour() ? t('you') : t('friend'))
+                  : cfg.mode === 'ai' ? (p === cfg.human ? t('you') : t('machine'))
+                  : (p === 1 ? t('gold') : t('turq'));
 
 // ---------------- geometry / drawing ----------------
 function resize() {
@@ -1724,9 +2006,16 @@ function updatePanel(extra) {
   if (predStats.total > 0 && cfg.mode === 'ai') add(t('predScore', predStats.hit, predStats.total), 'pred');
   if (extra) add(extra, 'pred');
   const bar = document.getElementById('linkBar');
-  if (LinkGame.active()) {
+  if (Online.active()) {
+    Online.sync(game);                            // publishes only when the position actually moved
+    Online.render();
+  } else if (LinkGame.active()) {
     LinkGame.writeHash(game);
     bar.hidden = false;
+    document.getElementById('peerRow').hidden = true;
+    document.getElementById('roomCode').hidden = true;
+    document.getElementById('btnLeave').hidden = true;
+    document.getElementById('btnShare').disabled = false;
     document.getElementById('linkTurn').textContent = game.over
       ? t('over') : t('shareTurn', t(game.toMove === 1 ? 'gold' : 'turq'));
     document.getElementById('btnShareText').textContent = t('shareBtn');
@@ -1737,7 +2026,8 @@ function updatePanel(extra) {
   const human = isHuman(game.toMove) && !game.over && !busy;
   document.getElementById('btnPass').disabled = !human;
   document.getElementById('btnHint').disabled = !human;
-  document.getElementById('btnUndo').disabled = busy || game.history.length === 0 || cfg.mode === 'demo';
+  document.getElementById('btnUndo').disabled = busy || game.history.length === 0 || cfg.mode === 'demo'
+    || Online.active();                           // taking a move back under someone else is not a move
   const canSwap = human && !swapUsed && game.canSwap();
   document.getElementById('btnSwap').hidden = !canSwap;
 }
@@ -1749,6 +2039,9 @@ function playMove(j, after) {
   const p = game.toMove;
   const rec = game.play(j);
   if (!rec) { busy = false; updatePanel(); draw(); return after && after(null); }
+  // Send it the moment it is legal. Waiting for the animation to finish would tie the other
+  // device to this one's frame loop, and a backgrounded tab is given no frames at all.
+  Online.sync(game);
   if (j === -1) { toast(t('passed', cfg.mode === 'ai' ? nameOf(p) : t(p === 1 ? 'gold' : 'turq'))); updatePanel(); draw(); return after && after(rec); }
   if (game.history.length === 1) openingCell = j;
   const flipsTotal = rec.waves.reduce((s, w) => s + w.length, 0);
@@ -1778,6 +2071,8 @@ function nextTurn() {
   updatePanel(); draw();
   if (game.over) return showOver();
   const p = game.toMove;
+  // In a room the other colour belongs to a person somewhere else: wait for their move to arrive.
+  if (Online.active() && !isHuman(p)) { busy = false; updatePanel(); draw(); return; }
   if (!game.canPlace(p) && !isHuman(p)) { return playMove(-1, () => setTimeout(nextTurn, 350)); }
   if (isHuman(p)) {
     busy = false; updatePanel();
@@ -1944,7 +2239,12 @@ document.getElementById('btnUndo').onclick = () => {
   updatePanel(); draw();
   if (!isHuman(game.toMove)) setTimeout(nextTurn, 200);
 };
-document.getElementById('btnShare').onclick = () => LinkGame.share();
+document.getElementById('btnShare').onclick = () => (Online.active() ? Online : LinkGame).share();
+document.getElementById('btnLeave').onclick = () => { Online.leave(); newGame({ mode: 'ai', level: 2, human: 1 }); };
+// Leaving is the common case -- closing the tab, locking the phone -- and the point of the room is
+// that the other player finds out. Say so on the way out rather than making them wait for the will.
+addEventListener('pagehide', () => Online.bye());
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Online.poke(); });
 document.getElementById('btnLang').onclick = () => { lang = lang === 'ar' ? 'en' : 'ar'; try { localStorage.setItem('fw-lang', lang); } catch (e) {} applyLang(); draw(); };
 document.getElementById('btnRules').onclick = () => document.getElementById('dlgRules').showModal();
 document.getElementById('btnLearn').onclick = () => Tutorial.open(0);
@@ -1965,7 +2265,9 @@ document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e
 const segVal = id => document.querySelector(`#${id} button[aria-pressed="true"]`).dataset.v;
 document.getElementById('btnStart').onclick = () => {
   document.getElementById('dlgNew').close();
-  newGame({ mode: segVal('segMode'), level: +segVal('segLevel'), human: +segVal('segSide') });
+  const mode = segVal('segMode');
+  newGame({ mode, level: +segVal('segLevel'), human: +segVal('segSide') });
+  if (mode === 'online' && !Online.active()) Online.host();
 };
 document.getElementById('btnAgain').onclick = () => { document.getElementById('dlgOver').close(); document.getElementById('dlgNew').showModal(); };
 document.getElementById('optThoughts').onchange = () => { updatePanel(); draw(); };
@@ -1981,6 +2283,7 @@ window.__fw = {
   setLevelMs: (i, ms) => { LEVELS[i].ms = ms; },
   forceLocalAI: () => AI.forceLocal(),
   install: () => Install,
+  online: () => Online,
   tutorial: () => Tutorial,
   puzzles: () => Puzzles,
 };
@@ -2101,6 +2404,141 @@ const LinkGame = (function () {
     encode, replay, codeInHash, writeHash, share,
     // shown for a game two people share; the machine's games have nothing to pass back and forth
     active: () => cfg.mode === 'pvp',
+  };
+})();
+
+// ---------------- two devices, one game ----------------
+// Sharing is a room, not a position. Both phones meet on a public relay (see relay.js), so each
+// one sees the other arrive, sees their moves as they happen, and sees them go. Nothing is stored
+// anywhere: the room is a random name, and the only thing published into it is the move list.
+const Online = (function () {
+  const RELAY = window.FawaneesRelay;
+  const HOST_WAIT = 11000;                 // a broker that has not answered by now is not going to
+  let link = null, room = null, seat = null;
+  let status = 'off', peer = false, everPeer = false, hostTry = 0, hostTimer = null;
+
+  const active = () => !!link;
+  const colour = () => (seat === 'a' ? 1 : 2);
+  const urlFor = (r) => location.origin + location.pathname + '?r=' + r;
+
+  function stop() {
+    clearTimeout(hostTimer); hostTimer = null;
+    if (link) link.leave();
+    link = null; room = null; seat = null;
+    status = 'off'; peer = false; everPeer = false;
+  }
+
+  function connect(r, s) {
+    stop();
+    room = r; seat = s; status = 'connecting';
+    history.replaceState(null, '', location.pathname + '?r=' + r);
+    link = RELAY.join({
+      room: r, seat: s,
+      onStatus: (st) => { status = st; repaint(); },
+      onPeer: (on) => {
+        peer = on;
+        if (on) everPeer = true;
+        toast(t(on ? 'roomPeerJoined' : 'roomPeerLeft'));
+        repaint();
+      },
+      onState: adopt,
+      onSeatTaken: () => toast(t('roomTaken')),
+    });
+  }
+
+  // The host picks the broker, and the room name records which one, so the link always lands both
+  // players in the same place. If the first broker will not answer we start over on the next --
+  // safe only because the link has not been shared yet, which is why the share button waits.
+  function host() {
+    hostTry = 0;
+    tryHost();
+  }
+  function tryHost() {
+    connect(RELAY.newRoomId(hostTry % RELAY.BROKERS.length), 'a');
+    status = 'prep';
+    hostTimer = setTimeout(() => {
+      if (!link || status === 'online') return;
+      if (++hostTry >= RELAY.BROKERS.length) { toast(t('roomNoConnect')); return; }
+      tryHost();
+    }, HOST_WAIT);
+    repaint();
+  }
+
+  const join = (r) => connect(r, 'b');
+
+  // Whatever arrives from the other device is replayed through the engine, never trusted.
+  function adopt(code) {
+    const g = code ? LinkGame.replay(code) : new F.Game(RADIUS, RULES);
+    if (!g) return;                        // not a game we can reach legally: keep what we have
+    abortThinking();
+    game = g; geo = game.geo;
+    selected = -1; busy = false; prediction = null; plan = []; lastInfo = null; evalInfo = null;
+    swapUsed = !game.canSwap();
+    openingCell = game.history.length && game.history[0].move >= 0 ? game.history[0].move : -1;
+    resize();
+    nextTurn();
+  }
+
+  function sync(g) {
+    if (!link) return;
+    const code = g.history.length ? LinkGame.encode(g) : '';
+    if (code !== link.state) link.publish(code);
+  }
+
+  function repaint() { if (game) { updatePanel(); draw(); } }
+
+  function render() {
+    document.getElementById('linkBar').hidden = false;
+    const row = document.getElementById('peerRow');
+    const waiting = status !== 'online' || !peer;
+    row.hidden = false;
+    row.className = 'peer ' + (status !== 'online' ? 'waiting' : peer ? 'here' : everPeer ? 'gone' : 'waiting');
+    document.getElementById('peerText').textContent =
+      status === 'prep' ? t('roomPrep')
+      : status === 'connecting' ? t(everPeer ? 'roomLost' : 'roomConnecting')
+      : status !== 'online' ? t('roomLost')
+      : peer ? t('roomHere')
+      : everPeer ? t('roomGone') : t('roomWaiting');
+    const codeEl = document.getElementById('roomCode');
+    codeEl.hidden = !waiting || !room;
+    codeEl.textContent = room ? room.slice(1).toUpperCase() : '';
+    document.getElementById('linkTurn').textContent =
+      !peer ? t('roomNeedTwo')
+      : game.over ? t('over')
+      : game.toMove === colour() ? t('roomYourTurn') : t('roomTheirTurn');
+    const share = document.getElementById('btnShare');
+    share.disabled = status !== 'online';   // a link to a room we never reached helps nobody
+    document.getElementById('btnShareText').textContent = t(peer ? 'shareBtn' : 'roomShare');
+    const leave = document.getElementById('btnLeave');
+    leave.hidden = false;
+    leave.textContent = t('leaveRoom');
+  }
+
+  async function share() {
+    const url = urlFor(room);
+    if (navigator.share) {
+      try { await navigator.share({ title: t('title'), text: t('shareText'), url }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(url); toast(t('shareCopied')); }
+    catch (e) { window.prompt(t('roomShare'), url); }
+  }
+
+  return {
+    host, join, sync, render, share, active, colour,
+    roomInUrl: () => (location.search.match(/[?&]r=([A-Za-z0-9]+)/) || [])[1] || null,
+    leave() {
+      if (!link) return;
+      stop();
+      history.replaceState(null, '', location.pathname);
+      toast(t('roomLeft'));
+    },
+    bye() { if (link) link.leave(); },     // the page is going away; just tell the other side
+    poke() { if (link) link.poke(); },     // back from the background: reconnect now, not in a minute
+    get peerHere() { return peer; },
+    get status() { return status; },
+    get room() { return room; },
+    get seat() { return seat; },
   };
 })();
 
@@ -2682,8 +3120,13 @@ const Puzzles = (function () {
 
 
 drawIcons();
+const roomId = Online.roomInUrl();
 const shared = LinkGame.codeInHash();
-if (shared) {
+if (roomId) {
+  newGame({ mode: 'online' });
+  Online.join(roomId);                     // whoever opened the link takes the second seat
+} else if (shared) {
+  // Links from before rooms existed carried the moves themselves; they still open.
   const g = LinkGame.replay(shared);
   newGame({ mode: 'pvp' });
   if (g) { game = g; geo = game.geo; resize(); updatePanel(); draw(); setTimeout(() => toast(t('linkLoaded')), 400); }
