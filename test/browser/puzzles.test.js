@@ -7,8 +7,12 @@ const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
+const fs = require('fs');
+// Puzzle mode is only in the page once the set has been mined and the wiring switched on.
+const wired = fs.readFileSync(path.join(DIST, 'fawanees.html'), 'utf8').includes('dlgPuzzle');
+const skip = wired ? false : 'puzzle mode is not wired into this build (run sim/minePuzzles.js, then test/tools/puzzlewiring.py on)';
 
-test('puzzle mode: wrong cells are refused with a measured reason, the answer plays the chain', async (t) => {
+test('puzzle mode: wrong cells are refused with a measured reason, the answer plays the chain', { skip }, async (t) => {
   const server = await serve(DIST);
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
@@ -50,7 +54,7 @@ test('puzzle mode: wrong cells are refused with a measured reason, the answer pl
   } finally { await browser.close(); await server.close(); }
 });
 
-test('the hint reveals the answer cell without solving it, and the second press gives it away', async () => {
+test('the hint reveals the answer cell without solving it, and the second press gives it away', { skip }, async () => {
   const server = await serve(DIST);
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {

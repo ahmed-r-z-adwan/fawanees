@@ -6,11 +6,13 @@
   "type": "commonjs",
   "scripts": {
     "build": "python build.py",
-    "test": "node --test \"test/**/*.test.js\"",
+    "test": "npm run test:unit && npm run test:browser",
     "test:unit": "node --test \"test/unit/**/*.test.js\"",
-    "test:browser": "node --test \"test/browser/**/*.test.js\"",
+    "test:browser": "node --test --test-concurrency=1 \"test/browser/**/*.test.js\"",
     "bench": "node sim/bench.js",
-    "selfplay": "node sim/selfplay.js"
+    "opening": "node sim/openingMatrix.js",
+    "calibrate": "node sim/calibrate.js",
+    "puzzles": "node sim/minePuzzles.js"
   },
   "devDependencies": {
     "puppeteer": "^25.12.0"

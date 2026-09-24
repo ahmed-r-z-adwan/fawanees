@@ -12,6 +12,9 @@ const path = require('path');
 const { perf } = require('../tools/perf.js');
 const { measure } = require('../tools/freeze.js');
 
+// Run these one at a time: `npm run test:browser` passes --test-concurrency=1. Several headless
+// Chromium instances sharing the CPU make a timing measurement meaningless, and this file is the
+// one that would silently start reporting whatever the machine happened to be doing.
 const DIST = path.join(__dirname, '..', '..', 'dist', 'fawanees.html');
 const THROTTLE = 4;
 const MASTER = 2;

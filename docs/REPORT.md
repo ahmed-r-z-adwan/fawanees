@@ -240,12 +240,51 @@ asserts that the single file makes no request to anything but Google Fonts.
 
 ---
 
-## 8. The machine's own puzzles
+## 8. The machine's own puzzles — not finished
 
-*(filled in below)*
+**Not shipped.** The build does not contain puzzle mode and does not reference it.
+
+What exists: `sim/minePuzzles.js` searches self-play games for positions where one move flips at
+least three lanterns, is at least five points better than every other move at depth 4 by exact root
+values, and is not the move a depth-1 search would play; it then re-checks each survivor a ply
+deeper with a fresh engine and folds away the board's twelve symmetries and the colour swap.
+`src/puzzleui.js` is the player for them, reusing the tutorial's board renderer.
+`test/unit/puzzles.test.js` and `test/browser/puzzles.test.js` are written and currently skip.
+
+What is missing: the mining run itself, which takes roughly half an hour. A smoke run over 8 games
+found 2 qualifying positions (margins 7 and 12 points, chains of 3 lanterns in 2 and 3 waves,
+swings of 18 and 19 points), so the yield is about one puzzle per four games and 1,200 games should
+produce plenty.
+
+To finish it:
+
+```
+node sim/minePuzzles.js --games 1200 --keep 16 --threads 12
+python test/tools/puzzlewiring.py on
+python build.py
+npm test
+```
 
 ---
 
 ## What is ready and what is not
 
-*(filled in below)*
+**Ready and verified:** steps 1, 2, 3, 4, 5, 6, 7. `dist/fawanees.html` is one self-contained file
+that plays, teaches, never freezes, answers in about a second on a phone, and shows a win chance
+that has been checked against 35,358 held-out positions. `pwa/` is the same page, installable and
+playable offline. `npm test` is 46 unit tests and 17 browser tests, all passing.
+
+**Not ready:** step 8, puzzle mode, described above. It is wired out of the build behind a
+reversible switch, so nothing half-finished reaches a player.
+
+**Open questions, none of them blocking:**
+
+- The last-lead-change target (40%) is not met and will not be under these rules; it sits at
+  37.4% ± 1.0. The decision to keep K=3 and accept that is recorded in BALANCE.md.
+- If K=4 is ever reconsidered, the edge-fortress question must be measured first: the six corner
+  cells have only three lines, so under K=4 they could never be captured.
+- The win model is fitted on depth 3 to 5 searches. Oracle on a fast desktop reaches depth 5 to 6,
+  slightly outside the fitted range. The held-out numbers hold up at depth 5, but there is no
+  measurement at depth 6.
+- `sim/selfplay.js` is referenced by `npm run selfplay` but does not exist; the studies are run
+  through their own scripts.
