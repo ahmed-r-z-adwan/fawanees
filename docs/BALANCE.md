@@ -126,8 +126,8 @@ capture that resolved in two waves or more -- one lantern switching and thereby 
 
 | measure | K=3, M=1 (current) | K=3, M=2 | K=4, M=1 |
 |---|---|---|---|
-| first player | 48.7% Â±1.7 | 46.5% Â±2.4 | 40.6% Â±2.1 |
-| last lead change | 37.4% Â±1.0 | 38.6% Â±1.3 | 45.4% Â±1.2 |
+| first player | 48.7% ±1.7 | 46.5% ±2.4 | 40.6% ±2.1 |
+| last lead change | 37.4% ±1.0 | 38.6% ±1.3 | 45.4% ±1.2 |
 | comeback | 21.3% | 19.2% | 25.0% |
 | avg margin | 44.9 | 38.3 | 24.0 |
 | chains / game | 4.32 | 1.71 | 1.99 |
@@ -140,9 +140,7 @@ capture that resolved in two waves or more -- one lantern switching and thereby 
 | opening cells used | 36 | 18 | 24 |
 | responder takes the lantern on | 30 of 36 | 0 of 18 | 24 of 24 |
 
-Each variant is played from its own balanced openings, found by a separate opening study,
-so no variant is judged on openings chosen for a different rule set. Every reply enumerated,
-depth 3 both sides. A "chain" is a capture that resolved in two waves or more.
+Every reply enumerated, depth 3 both sides.
 
 ### Reading it
 
