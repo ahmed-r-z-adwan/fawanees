@@ -1,0 +1,65 @@
+{
+ "what": "How games move under the current rules, and under candidate rule changes.",
+ "how": "node sim/dynamics.js --depth 3",
+ "setup": "Openings -5,2, -5,3, -3,-2, -3,5, -2,-3, -2,5, 2,-5, 2,3, 3,-5, 3,2, 5,-3, 5,-2, -3,0, -3,3, 0,-3, 0,3, 3,-3, 3,0, -2,0, -2,2, 0,-2, 0,2, 2,-2, 2,0; the second player does whatever is better for them; every reply enumerated; both sides search to depth 3.",
+ "metric": "\"last lead change\" is how far into the game the leader changed for the last time, averaged over games. A game decided early has a small number.",
+ "date": "2026-09-24",
+ "variants": [
+  {
+   "name": "current rules",
+   "radius": 5,
+   "rules": {
+    "K": 4,
+    "restrict": false,
+    "supply": 24,
+    "range": 2
+   },
+   "openings": [
+    "-5,2",
+    "-5,3",
+    "-3,-2",
+    "-3,5",
+    "-2,-3",
+    "-2,5",
+    "2,-5",
+    "2,3",
+    "3,-5",
+    "3,2",
+    "5,-3",
+    "5,-2",
+    "-3,0",
+    "-3,3",
+    "0,-3",
+    "0,3",
+    "3,-3",
+    "3,0",
+    "-2,0",
+    "-2,2",
+    "0,-2",
+    "0,2",
+    "2,-2",
+    "2,0"
+   ],
+   "swapDecidedBy": "a first pass over all 24 openings together: responder takes",
+   "responderTakesOn": "24 of 24",
+   "played": {
+    "games": 2160,
+    "openerWinRate": 0.4060185185185185,
+    "openerWinRateHalfWidth": 0.021086242662684825,
+    "drawRate": 0.010648148148148148,
+    "lastLeadChange": 0.45438728269085404,
+    "lastLeadChangeHalfWidth": 0.012481052895493604,
+    "comebackRate": 0.24953703703703703,
+    "marginAvg": 23.950925925925926,
+    "turnsAvg": 48.98425925925926,
+    "capturingMovesPerGame": 12.52361111111111,
+    "chainsPerGame": 1.985648148148148,
+    "gamesWithAChain": 0.9050925925925926,
+    "lanternsFlippedPerGame": 15.27361111111111,
+    "biggestChainPerGame": 2.2430555555555554,
+    "biggestChainEver": 6,
+    "unfinished": 0
+   }
+  }
+ ]
+}

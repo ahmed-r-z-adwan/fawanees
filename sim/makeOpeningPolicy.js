@@ -26,6 +26,11 @@ const IN = arg('in', 'docs/measurements/opening.json');
 const OUT = arg('out', 'src/opening.js');
 
 const data = JSON.parse(fs.readFileSync(IN, 'utf8'));
+// If the policy has already been played out end to end, quote that rather than the orbit estimate:
+// it is what actually happens, over the whole opening set rather than the single best opening.
+const PLAYED = arg('played', 'docs/measurements/dyn-k3.json');
+let played = null;
+try { played = JSON.parse(fs.readFileSync(PLAYED, 'utf8')).variants[0].played; } catch (e) {}
 const { geo, canon, members } = orbitsOf(data.rules.radius);
 const key = i => geo.cells[i].q + ',' + geo.cells[i].r;
 const cellOf = new Map(data.cells.map(c => [c.cell, c]));
@@ -68,12 +73,18 @@ for (let i = 0; i < geo.N; i++) {
 }
 swapCells.sort();
 
+const allCells = data.cells.map(c => c.noSwap.openerWinRate);
+const avgNoSwap = allCells.reduce((a, b) => a + b, 0) / allCells.length;
+const bestNoSwap = orbits.reduce((a, b) => (b.keepsIt > a.keepsIt ? b : a));
+const worstNoSwap = orbits.reduce((a, b) => (b.keepsIt < a.keepsIt ? b : a));
+
 const pct = x => (100 * x).toFixed(1) + '%';
 console.log(`opening policy from ${data.totalGames} games (${data.cells.length} cells x 2 branches x ${geo.N - 1} replies)`);
 console.log(`  answered + taken = 100% to within ${(100 * worstComplement).toFixed(1)} points, so the two branches are the same game from opposite seats`);
 console.log(`  best opening for the opener: ring ${best.ring} (${best.q},${best.r}) -> ${pct(best.underSwapRule)} +/- ${(196 * best.se).toFixed(1)}`);
 console.log(`  ${bestSet.length} of ${orbits.length} openings are within 2 points of it -> ${openCells.length} cells to choose from`);
 console.log(`  the responder takes the lantern on ${swapCells.length} of ${geo.N} opening cells`);
+console.log(`  without the swap rule: best ${pct(bestNoSwap.keepsIt)}, average ${pct(avgNoSwap)}, centre ${pct(worstNoSwap.keepsIt)}`);
 console.log(`  worst opening: ring ${orbits[orbits.length - 1].ring} (${orbits[orbits.length - 1].q},${orbits[orbits.length - 1].r}) -> ${pct(orbits[orbits.length - 1].underSwapRule)}`);
 
 const js = `// Opening and swap policy, derived from ${data.totalGames} self-play games at equal strength:
@@ -89,7 +100,18 @@ window.FawaneesOpening = {
   measured: true,
   source: '${data.totalGames} self-play games at depth 3, every opening cell and every reply',
   games: ${data.totalGames},
-  openerWinRate: ${best.underSwapRule.toFixed(4)},
+  // What the first player gets if nobody may take the opening lantern: the advantage is real,
+  // and the swap rule is what removes it.
+  noSwapBest: ${bestNoSwap.keepsIt.toFixed(4)},
+  noSwapAverage: ${avgNoSwap.toFixed(4)},
+  noSwapCentre: ${worstNoSwap.keepsIt.toFixed(4)},
+  // What they get once the second player may take it. bestOpeningUnderSwapRule is the single best
+  // opening from the study; openerWinRate is the whole policy played out, which is what a player
+  // actually meets.
+  bestOpeningUnderSwapRule: ${best.underSwapRule.toFixed(4)},
+  openerWinRate: ${(played ? played.openerWinRate : best.underSwapRule).toFixed(4)},
+  openerWinRateHalfWidthPlayed: ${(played ? played.openerWinRateHalfWidth : 1.96 * best.se).toFixed(4)},
+  playedGames: ${played ? played.games : 0},
   openerWinRateHalfWidth: ${(1.96 * best.se).toFixed(4)},
   // Openings within two points of the best, which is finer than the study can resolve.
   open: ${JSON.stringify(openCells)},

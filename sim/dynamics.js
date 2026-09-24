@@ -61,7 +61,7 @@ function jobsFor(variant, openingCells, swapFor) {
 
 function summarise(results) {
   const a = { games: 0, openerWins: 0, draws: 0, margin: 0, turns: 0, lastLeadChangeFrac: 0, lastLeadChangeSq: 0,
-              comebacks: 0, capped: 0, capturingMoves: 0, cascades: 0, flipped: 0, maxChainSum: 0 };
+              comebacks: 0, capped: 0, capturingMoves: 0, cascades: 0, flipped: 0, maxChainSum: 0, gamesWithChain: 0 };
   let maxChainEver = 0;
   for (const r of results) { for (const k of Object.keys(a)) a[k] += r[k]; if (r.maxChainEver > maxChainEver) maxChainEver = r.maxChainEver; }
   const mean = a.lastLeadChangeFrac / a.games;
@@ -79,6 +79,7 @@ function summarise(results) {
     // what the capture rule actually does during a game
     capturingMovesPerGame: a.capturingMoves / a.games,
     chainsPerGame: a.cascades / a.games,
+    gamesWithAChain: a.gamesWithChain / a.games,
     lanternsFlippedPerGame: a.flipped / a.games,
     biggestChainPerGame: a.maxChainSum / a.games,
     biggestChainEver: maxChainEver,
@@ -116,7 +117,7 @@ function summarise(results) {
     const pct = x => (100 * x).toFixed(1).padStart(5) + '%';
     console.log(`${v.name.padEnd(28)} opener ${pct(main.openerWinRate)} +/-${(100 * main.openerWinRateHalfWidth).toFixed(1)}  last lead change ${pct(main.lastLeadChange)} +/-${(100 * main.lastLeadChangeHalfWidth).toFixed(1)}  ` +
                 `comeback ${pct(main.comebackRate)}  |margin| ${main.marginAvg.toFixed(1).padStart(5)}  ` +
-                `chains/game ${main.chainsPerGame.toFixed(2)}  flips/game ${main.lanternsFlippedPerGame.toFixed(1).padStart(4)}  ` +
+                `chains/game ${main.chainsPerGame.toFixed(2)}  games with a chain ${pct(main.gamesWithAChain)}  ` +
                 `biggest chain avg ${main.biggestChainPerGame.toFixed(1)} max ${main.biggestChainEver}  turns ${main.turnsAvg.toFixed(0)}  ` +
                 `(${main.games} games, responder takes on ${takesOn}/${cells.length})`);
   }

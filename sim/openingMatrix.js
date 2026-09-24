@@ -21,6 +21,7 @@ const DEPTH = +arg('depth', 3);
 const K = +arg('K', 3);
 const SUPPLY = +arg('supply', 24);
 const RANGE = +arg('range', 2);
+const M = +arg('M', 1);
 // With --reps-only just one cell per symmetry class is measured, which is twelve times cheaper
 // and enough to compare a candidate rule change against the current rules.
 const REPS_ONLY = process.argv.includes('--reps-only');
@@ -36,7 +37,7 @@ const { geo, canon, members } = orbitsOf(RADIUS);
 
 // Every opening, every branch, every reply. No sampling, so no sampling error: each cell's number
 // is the exact fraction of the 90 possible replies that the opener goes on to beat.
-const RULES_V = { K, restrict: false, supply: SUPPLY, range: RANGE };
+const RULES_V = { K, M, restrict: false, supply: SUPPLY, range: RANGE };
 const REPLIES = geo.N - 1;
 const CELLS = REPS_ONLY ? [...members.keys()] : Array.from({ length: geo.N }, (_, i) => i);
 const BRANCHES = ONE_BRANCH ? [false] : [false, true];
@@ -69,7 +70,7 @@ const bar = (done, total, ms) => {            // one line per 5%, so a long run 
 
 (async () => {
   console.log(`opening study: ${CELLS.length} cells x ${BRANCHES.length} branch${BRANCHES.length > 1 ? 'es' : ''} x every one of the ${REPLIES} replies = ${totalGames} games,`);
-  console.log(`K=${K} supply=${SUPPLY} range=${RANGE}, depth ${DEPTH} both sides, no randomness anywhere. ${THREADS} threads.`);
+  console.log(`K=${K} M=${M} supply=${SUPPLY} range=${RANGE}, depth ${DEPTH} both sides, no randomness anywhere. ${THREADS} threads.`);
   const t0 = Date.now();
   const results = await runPool(path.join(__dirname, 'playWorker.js'), jobs, {
     threads: THREADS,

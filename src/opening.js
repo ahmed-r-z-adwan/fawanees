@@ -11,6 +11,12 @@ window.FawaneesOpening = {
   measured: true,
   source: '16380 self-play games at depth 3, every opening cell and every reply',
   games: 16380,
+  // What the first player gets if nobody may take the opening lantern: the advantage is real,
+  // and the swap rule is what removes it.
+  noSwapBest: 0.6130,
+  noSwapAverage: 0.5380,
+  noSwapCentre: 0.3556,
+  // What they get once the second player may take it.
   openerWinRate: 0.4963,
   openerWinRateHalfWidth: 0.0499,
   // Openings within two points of the best, which is finer than the study can resolve.

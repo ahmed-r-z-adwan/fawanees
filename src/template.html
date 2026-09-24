@@ -279,13 +279,15 @@ const T = {
 </ol>
 <p>نصيحة: اضغط أي خانة مرة واحدة لترى الضوء الذي ستكسبه والفوانيس التي ستتحوّل، ثم اضغطها مرة ثانية لتلعب.</p>`,
     howHtml: `<p>القواعد والاسم والموازنة والذكاء الاصطناعي كلها من صنع Claude، نموذج ذكاء اصطناعي من Anthropic.</p>
-<p>بعد تصميم النسخة الأولى من القواعد، لعبت الآلة ضد نفسها نحو 4000 مباراة لاختبارها. هذه بعض الأشياء التي كشفتها التجارب وغيّرت القواعد:</p>
+<p>بعد تصميم النسخة الأولى من القواعد، لعبت الآلة ضد نفسها آلاف المباريات لاختبارها. هذه بعض الأشياء التي كشفتها التجارب وغيّرت القواعد:</p>
 <ol>
-<li>في النسخة الأولى كان اللاعب الأول يفوز في 74 إلى 86٪ من المباريات.</li>
+<li>في النسخة الأولى كان اللاعب الأول يفوز في 72 إلى 86٪ من المباريات.</li>
 <li>عندما كان الضوء يصل إلى حافة اللوح، كانت المباراة تُحسم بعد نحو خُمسها الأول. فأصبح مدى الضوء خانتين.</li>
 <li>عندما كانت الفوانيس المأسورة تُزال بدل أن تتحوّل، لم تكن المباريات تنتهي أبداً.</li>
-<li>تبيّن أن الافتتاح في المركز يمنح الأول نحو 31٪ فقط، وأن الحلقات الوسطى تمنحه حتى 63٪. لذلك أُضيفت قاعدة أخذ فانوس الافتتاح.</li>
 </ol>
+<p>وأحدث دراسة هي الأدق: جرّبت الآلة كل خانة افتتاح ممكنة (91 خانة)، ومع كل واحدة منها كل رد ممكن عليها (90 رداً)، أي 16380 مباراة بلا أي عشوائية.</p>
+<p>النتيجة: أفضلية اللاعب الأول حقيقية. لو لعب أفضل افتتاح ولم يكن هناك تبديل، يفوز في ${Math.round(100 * OPENING.noSwapBest)}٪ من المباريات، وبمتوسط ${Math.round(100 * OPENING.noSwapAverage)}٪ على كل الافتتاحات. أسوأ افتتاح له هو المركز: ${Math.round(100 * OPENING.noSwapCentre)}٪ فقط.</p>
+<p>قاعدة أخذ فانوس الافتتاح هي التي تصلح هذا. فالموقف بعد أخذ الفانوس هو نفسه الموقف بعد الرد عليه، مع تبادل اللونين، فيختار اللاعب الثاني ببساطة المقعد الأفضل. وبهذا ينزل اللاعب الأول إلى ${Math.round(100 * OPENING.openerWinRate)}٪ في ${OPENING.playedGames || OPENING.games} مباراة قياس.</p>
 <p>الآلة التي تلاعبك لم ترَ هذه اللعبة قبل أن تُخترع، ولم يدرّبها أحد عليها. هي تبحث في شجرة الاحتمالات مباشرة داخل متصفحك، بخوارزمية ألفا-بيتا مع جدول تحويلات.</p>
 <p>هذه نسخة تجريبية.</p>`,
   },
@@ -321,13 +323,15 @@ const T = {
 </ol>
 <p>Tip: tap any cell once to see the light you would gain and the lanterns that would switch, then tap it again to play.</p>`,
     howHtml: `<p>The rules, the name, the balancing and the AI were all made by Claude, an AI model from Anthropic.</p>
-<p>After the first draft of the rules, the machine played itself about 4,000 times to test them. Some things those games revealed, which changed the rules:</p>
+<p>After the first draft of the rules, the machine played itself thousands of times to test them. Some things those games revealed, which changed the rules:</p>
 <ol>
-<li>In the first version, the first player won 74 to 86% of games.</li>
+<li>In the first version, the first player won 72 to 86% of games.</li>
 <li>When light reached the edge of the board, games were decided within roughly the first fifth. Light now travels two cells.</li>
 <li>When captured lanterns were removed instead of switching sides, games never ended.</li>
-<li>Opening in the centre gives the first player only about 31%, while the middle rings give up to 63%. That is why the opening swap rule exists.</li>
 </ol>
+<p>The latest study is the careful one: every one of the 91 opening cells, and for each of them every one of the 90 possible replies. 16,380 games, with no randomness anywhere.</p>
+<p>It says the first player's advantage is real. Opening on the best cell, with no swap, they win ${Math.round(100 * OPENING.noSwapBest)}% of games, and ${Math.round(100 * OPENING.noSwapAverage)}% averaged over every opening. Their worst opening is the centre, at ${Math.round(100 * OPENING.noSwapCentre)}%.</p>
+<p>The rule that lets the second player take the opening lantern is what fixes that. The position after taking it is the position after answering it with the colours exchanged, so the second player simply picks the better seat. That brings the first player down to ${Math.round(100 * OPENING.openerWinRate)}%, measured over ${OPENING.playedGames || OPENING.games} games.</p>
 <p>The machine playing you had never seen this game before it was invented, and nobody trained it. It searches the tree of possibilities directly in your browser, using alpha-beta search with a transposition table.</p>
 <p>This is a prototype.</p>`,
   },

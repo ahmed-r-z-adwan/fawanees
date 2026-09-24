@@ -74,7 +74,7 @@ function playOne({ opening, swap, reply, depth1, depth2, rules = RULES, radius =
   return {
     openerWon: a > b ? 1 : 0, draw: a === b ? 1 : 0, margin: Math.abs(a - b),
     turns: diffs.length,
-    capturingMoves, cascades, maxChain, flipped,
+    capturingMoves, cascades, maxChain, flipped, hadChain: cascades > 0 ? 1 : 0,
     lastLeadChangeFrac: diffs.length ? lastChange / diffs.length : 0,
     comeback: (Math.sign(mid) && Math.sign(mid) !== Math.sign(a - b)) ? 1 : 0,
     capped: g.over ? 0 : 1,
@@ -90,7 +90,8 @@ function runJob(job) {
   const replies = probe.legal();
 
   const agg = { games: 0, openerWins: 0, draws: 0, margin: 0, turns: 0, lastLeadChangeFrac: 0, lastLeadChangeSq: 0,
-                comebacks: 0, capped: 0, capturingMoves: 0, cascades: 0, flipped: 0, maxChainSum: 0, maxChainEver: 0, replies: replies.length };
+                comebacks: 0, capped: 0, capturingMoves: 0, cascades: 0, flipped: 0, maxChainSum: 0, maxChainEver: 0,
+                gamesWithChain: 0, replies: replies.length };
   const to = Math.min(job.replyTo ?? replies.length, replies.length);
   for (let i = job.replyFrom ?? 0; i < to; i++) {
     const r = playOne({ ...job, reply: replies[i] });
@@ -100,6 +101,7 @@ function runJob(job) {
     agg.comebacks += r.comeback; agg.capped += r.capped;
     agg.capturingMoves += r.capturingMoves; agg.cascades += r.cascades; agg.flipped += r.flipped;
     agg.maxChainSum += r.maxChain; if (r.maxChain > agg.maxChainEver) agg.maxChainEver = r.maxChain;
+    agg.gamesWithChain += r.hadChain;
   }
   return { ...job, ...agg };
 }
