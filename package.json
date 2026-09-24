@@ -6,9 +6,9 @@
   "type": "commonjs",
   "scripts": {
     "build": "python build.py",
-    "test": "node --test test/",
-    "test:unit": "node --test test/unit/",
-    "test:browser": "node --test test/browser/",
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:browser": "node --test \"test/browser/**/*.test.js\"",
     "bench": "node sim/bench.js",
     "selfplay": "node sim/selfplay.js"
   },
