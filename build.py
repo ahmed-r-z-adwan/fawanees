@@ -19,6 +19,8 @@ def build_page():
     html = read('src/template.html')
     for marker, source in (('/*ENGINE*/', 'src/engine.js'),
                            ('/*WORKER*/', 'src/worker.js'),
+                           ('/*LESSONS*/', 'src/lessons.js'),
+                           ('/*TUTORIAL*/', 'src/tutorial.js'),
                            ('/*CALIBRATION*/', 'src/calibration.js'),
                            ('/*OPENING*/', 'src/opening.js')):
         assert marker in html, f'{marker} missing from src/template.html'
