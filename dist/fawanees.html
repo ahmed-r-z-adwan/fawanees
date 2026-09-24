@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>فوانيس</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --night: #15112a; --night-2: #1d1838; --tile: #231d40; --line: #3a3363;
+  --text: #ece7f7; --muted: #a39cc4; --amber: #f2b447; --amber-core: #ffe9b8; --turq: #3cc8cf; --turq-core: #c8f7f8;
+  --radius: 14px;
+}
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+html, body { margin: 0; background: radial-gradient(120% 90% at 50% 20%, #251d49 0%, var(--night) 55%, #0f0c1f 100%) fixed; background-color: var(--night); color: var(--text); }
+body { font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif; font-size: 16px; line-height: 1.5; min-height: 100vh; }
+button { font: inherit; color: inherit; }
+.app { max-width: 1120px; margin: 0 auto; padding: 14px 16px 24px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand h1 { font-family: "Reem Kufi", "IBM Plex Sans Arabic", sans-serif; font-weight: 700; font-size: 34px; line-height: 1.1; margin: 0; color: #f6ead0; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: transparent; border: 1px solid #4b4480; border-radius: 999px; padding: 8px 14px; cursor: pointer; min-height: 40px; }
+.btn:hover { border-color: #6d64ad; }
+.btn:focus-visible, canvas:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.btn.primary { background: var(--amber); color: #1a1531; border-color: var(--amber); font-weight: 700; }
+.btn[disabled] { opacity: .4; cursor: default; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; margin-top: 14px; align-items: start; }
+.board-wrap { position: relative; }
+canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-action: manipulation; border-radius: var(--radius); }
+.toast { position: absolute; inset-inline: 0; bottom: 8px; margin: 0 auto; width: max-content; max-width: 90%; background: #2b2350; border: 1px solid var(--amber); color: #ffe2a0; padding: 6px 14px; border-radius: 999px; font-weight: 700; opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: none; }
+.panel { display: flex; flex-direction: column; gap: 14px; }
+.card { background: rgba(35, 29, 64, .72); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+.side { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; padding: 4px 0; }
+.side .name { font-weight: 500; }
+.side .sub { color: var(--muted); font-size: 13px; }
+.side .pts { font-family: "Reem Kufi", sans-serif; font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.side.p1 .pts { color: var(--amber); } .side.p2 .pts { color: var(--turq); }
+.side.turn .name::after { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-inline-start: 8px; vertical-align: middle; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.meter { margin-top: 10px; }
+.meter .bar { height: 10px; border-radius: 999px; background: var(--turq); overflow: hidden; display: flex; }
+.meter .fill { height: 100%; background: var(--amber); transition: width .6s ease; }
+.meter .legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin-top: 4px; }
+.status { font-weight: 700; font-size: 17px; }
+.mind p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+.mind .pred { color: #ffe2a0; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.controls .btn { flex: 1 1 auto; }
+.toggles { display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 14px; }
+.toggles label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+footer { margin-top: 18px; color: #7e77a3; font-size: 13px; text-align: center; }
+footer a { color: var(--muted); }
+dialog { background: #1e1938; color: var(--text); border: 1px solid var(--line); border-radius: 18px; padding: 20px; max-width: min(560px, 92vw); max-height: 86vh; overflow: auto; }
+dialog::backdrop { background: rgba(8, 6, 18, .7); }
+dialog h2 { font-family: "Reem Kufi", sans-serif; margin: 0 0 10px; font-size: 26px; color: #f6ead0; }
+dialog ol { padding-inline-start: 22px; margin: 8px 0; }
+dialog li { margin: 6px 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
+.seg button { border: 1px solid #4b4480; background: transparent; border-radius: 999px; padding: 7px 12px; cursor: pointer; min-height: 38px; }
+.seg button[aria-pressed="true"] { background: #3a3170; border-color: var(--amber); }
+.field-label { color: var(--muted); font-size: 14px; }
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.stats { color: var(--muted); font-size: 14px; }
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; }
+  .brand h1 { font-size: 28px; }
+  .brand p { font-size: 13px; }
+  .top-actions { gap: 6px; }
+  .top-actions .btn { padding: 6px 11px; min-height: 36px; font-size: 14px; }
+  .app { padding: 10px 10px 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .toast, .meter .fill { transition: none; } .side.turn .name::after { animation: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><h1 data-i18n="title">فوانيس</h1><p data-i18n="tagline">لعبة ضوء وظل اخترعها ذكاء اصطناعي</p></div>
+    <div class="top-actions">
+      <button class="btn" id="btnRules" data-i18n="rules">القواعد</button>
+      <button class="btn" id="btnNew" data-i18n="newGame">لعبة جديدة</button>
+      <button class="btn" id="btnLang" aria-label="Language">EN</button>
+    </div>
+  </header>
+  <main>
+    <section class="board-wrap">
+      <canvas id="board" tabindex="0" role="application" aria-label="لوح اللعبة"></canvas>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </section>
+    <aside class="panel">
+      <div class="card">
+        <div class="side p1" id="side1"><canvas class="icon" width="68" height="68" style="width:34px;height:34px"></canvas><div><div class="name" id="name1"></div><div class="sub" id="hand1"></div></div><div class="pts" id="pts1">0</div></div>
+        <div class="side p2" id="side2"><canvas class="icon" width="68" height="68" style="width:34px;height:34px"></canvas><div><div class="name" id="name2"></div><div class="sub" id="hand2"></div></div><div class="pts" id="pts2">0</div></div>
+        <div class="meter"><div class="bar"><div class="fill" id="meterFill" style="width:50%"></div></div><div class="legend"><span id="meter1"></span><span id="meter2"></span></div></div>
+      </div>
+      <div class="card">
+        <div class="status" id="status" aria-live="polite"></div>
+        <div class="mind" id="mind"></div>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="btnSwap" hidden data-i18n="swap">خذ فانوسه</button>
+        <button class="btn" id="btnPass" data-i18n="pass">تمرير</button>
+        <button class="btn" id="btnUndo" data-i18n="undo">تراجع</button>
+        <button class="btn" id="btnHint" data-i18n="hint">تلميح</button>
+      </div>
+      <div class="toggles card">
+        <label><input type="checkbox" id="optThoughts" checked> <span data-i18n="showThoughts">أظهر خطة الآلة على اللوح</span></label>
+        <label><input type="checkbox" id="optPredict" checked> <span data-i18n="predict">دع الآلة تتوقع حركتي</span></label>
+      </div>
+    </aside>
+  </main>
+  <footer><span data-i18n="credit">صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة: أحمد عدوان.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
+</div>
+
+<dialog id="dlgNew">
+  <h2 data-i18n="newGame">لعبة جديدة</h2>
+  <div class="field-label" data-i18n="mode">طريقة اللعب</div>
+  <div class="seg" id="segMode">
+    <button data-v="ai" aria-pressed="true" data-i18n="modeAI">ضد الآلة</button>
+    <button data-v="pvp" aria-pressed="false" data-i18n="modePvP">لاعبان على جهاز واحد</button>
+    <button data-v="demo" aria-pressed="false" data-i18n="modeDemo">شاهد الآلة ضد نفسها</button>
+  </div>
+  <div id="aiOpts">
+    <div class="field-label" data-i18n="level">مستوى الآلة</div>
+    <div class="seg" id="segLevel">
+      <button data-v="0" aria-pressed="false" data-i18n="lv0">مبتدئ</button>
+      <button data-v="1" aria-pressed="false" data-i18n="lv1">ماهر</button>
+      <button data-v="2" aria-pressed="true" data-i18n="lv2">أستاذ</button>
+      <button data-v="3" aria-pressed="false" data-i18n="lv3">العرّاف</button>
+    </div>
+    <div class="field-label" data-i18n="youPlay">أنت تلعب</div>
+    <div class="seg" id="segSide">
+      <button data-v="1" aria-pressed="true" data-i18n="first">أولاً (الذهبي)</button>
+      <button data-v="2" aria-pressed="false" data-i18n="second">ثانياً (الفيروزي)</button>
+    </div>
+  </div>
+  <div class="dialog-actions"><button class="btn" data-close data-i18n="cancel">إلغاء</button><button class="btn primary" id="btnStart" data-i18n="start">ابدأ</button></div>
+</dialog>
+
+<dialog id="dlgRules">
+  <h2 data-i18n="rules">القواعد</h2>
+  <div id="rulesBody"></div>
+  <div class="dialog-actions"><button class="btn primary" data-close data-i18n="gotIt">فهمت</button></div>
+</dialog>
+
+<dialog id="dlgHow">
+  <h2 data-i18n="how">كيف صُنعت؟</h2>
+  <div id="howBody" class="stats"></div>
+  <div class="dialog-actions"><button class="btn primary" data-close data-i18n="close">إغلاق</button></div>
+</dialog>
+
+<dialog id="dlgOver">
+  <h2 id="overTitle"></h2>
+  <div id="overBody" class="stats"></div>
+  <div class="dialog-actions"><button class="btn" data-close data-i18n="close">إغلاق</button><button class="btn primary" id="btnAgain" data-i18n="again">العب مرة أخرى</button></div>
+</dialog>
+
+<script>
+// Fawanees engine: hex geometry, rules, and search. Works in the browser (window.Fawanees) and in Node.
+(function (root) {
+  'use strict';
+  const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+
+  function makeGeometry(R) {
+    const cells = [];
+    const index = new Map();
+    for (let q = -R; q <= R; q++) {
+      for (let r = Math.max(-R, -q - R); r <= Math.min(R, -q + R); r++) {
+        index.set(q + ',' + r, cells.length);
+        cells.push({ q, r });
+      }
+    }
+    const N = cells.length;
+    const rayStart = new Int32Array(N * 6), rayLen = new Int32Array(N * 6);
+    const flat = [];
+    for (let i = 0; i < N; i++) {
+      for (let d = 0; d < 6; d++) {
+        rayStart[i * 6 + d] = flat.length;
+        let q = cells[i].q + DIRS[d][0], r = cells[i].r + DIRS[d][1], len = 0;
+        while (index.has(q + ',' + r)) { flat.push(index.get(q + ',' + r)); len++; q += DIRS[d][0]; r += DIRS[d][1]; }
+        rayLen[i * 6 + d] = len;
+      }
+    }
+    const neighbors = cells.map(c => DIRS.map(([dq, dr]) => index.get((c.q + dq) + ',' + (c.r + dr))).filter(v => v !== undefined));
+    return { R, N, cells, index, rayStart, rayLen, rayCells: Int32Array.from(flat), neighbors };
+  }
+
+  // Scratch buffers per geometry
+  function makeScratch(N) {
+    return { l1: new Int8Array(N), l2: new Int8Array(N), s1: new Int8Array(N), s2: new Int8Array(N) };
+  }
+
+  // light[p][cell]: beams of player p reaching empty cell; sight[p][lantern]: lanterns of p that see this lantern
+  function computeLight(geo, board, sc) {
+    const N = geo.N, rs = geo.rayStart, rl = geo.rayLen, rc = geo.rayCells, range = geo.range || 99;
+    const l1 = sc.l1, l2 = sc.l2, s1 = sc.s1, s2 = sc.s2;
+    l1.fill(0); l2.fill(0); s1.fill(0); s2.fill(0);
+    for (let i = 0; i < N; i++) {
+      const p = board[i];
+      if (p === 0) continue;
+      const L = p === 1 ? l1 : l2, S = p === 1 ? s1 : s2;
+      for (let d = 0; d < 6; d++) {
+        const k0 = rs[i * 6 + d], len = rl[i * 6 + d], k1 = k0 + (len < range ? len : range);
+        for (let k = k0; k < k1; k++) {
+          const j = rc[k];
+          if (board[j] === 0) L[j]++;
+          else { S[j]++; break; }
+        }
+      }
+    }
+  }
+
+  // restrict: a player may not place inside light the opponent controls
+  function legalMoves(geo, board, p, sc, out, restrict) {
+    const N = geo.N, mine = p === 1 ? sc.l1 : sc.l2, theirs = p === 1 ? sc.l2 : sc.l1;
+    let n = 0;
+    if (restrict === false) { for (let j = 0; j < N; j++) if (board[j] === 0) out[n++] = j; return n; }
+    for (let j = 0; j < N; j++) if (board[j] === 0 && !(theirs[j] > mine[j])) out[n++] = j;
+    return n;
+  }
+
+  function countLegal(geo, board, p, sc, restrict) {
+    const N = geo.N, mine = p === 1 ? sc.l1 : sc.l2, theirs = p === 1 ? sc.l2 : sc.l1;
+    let n = 0;
+    if (restrict === false) { for (let j = 0; j < N; j++) if (board[j] === 0) n++; return n; }
+    for (let j = 0; j < N; j++) if (board[j] === 0 && !(theirs[j] > mine[j])) n++;
+    return n;
+  }
+
+  // Place p at j, resolve conversions in waves. Returns array of waves (each an array of cell indices) or null if recordWaves=false (returns count).
+  function applyMove(geo, board, p, j, rules, sc, recordWaves) {
+    board[j] = p;
+    const q = 3 - p, N = geo.N, K = rules.K, M = rules.M || 1;
+    const waves = recordWaves ? [] : null;
+    let total = 0;
+    const flips = [];
+    for (;;) {
+      computeLight(geo, board, sc);
+      const sp = p === 1 ? sc.s1 : sc.s2, sq = p === 1 ? sc.s2 : sc.s1;
+      flips.length = 0;
+      for (let i = 0; i < N; i++) {
+        if (board[i] === q && sp[i] >= K && sp[i] >= sq[i] + M) flips.push(i);
+      }
+      if (flips.length === 0) break;
+      const to = rules.capture === 'remove' ? 0 : p;
+      for (const i of flips) board[i] = to;
+      total += flips.length;
+      if (waves) waves.push(flips.slice());
+    }
+    // light is now valid for the final board
+    return recordWaves ? waves : total;
+  }
+
+  function score(geo, board, sc, komi) {
+    computeLight(geo, board, sc);
+    let a = 0, b = komi || 0;
+    for (let j = 0; j < geo.N; j++) {
+      const v = board[j];
+      if (v === 1) a++; else if (v === 2) b++;
+      else if (sc.l1[j] > sc.l2[j]) a++; else if (sc.l2[j] > sc.l1[j]) b++;
+    }
+    return [a, b];
+  }
+
+  // ---------- Game (for UI and simulations) ----------
+  class Game {
+    constructor(R = 4, rules = { K: 3, komi: 0 }) {
+      this.geo = makeGeometry(R);
+      this.geo.range = rules.range || 99;
+      this.rules = rules;
+      this.sc = makeScratch(this.geo.N);
+      this.board = new Int8Array(this.geo.N);
+      this.hands = [0, rules.supply || this.geo.N, rules.supply2 || rules.supply || this.geo.N]; // index by player
+      this.toMove = 1;
+      this.over = false;
+      this.history = []; // {board, toMove, move, player, waves, pass}
+      this.moveBuf = new Int32Array(this.geo.N);
+    }
+    clone() {
+      const g = new Game(this.geo.R, this.rules);
+      g.board = this.board.slice(); g.toMove = this.toMove; g.over = this.over; g.lastPass = this.lastPass; g.hands = this.hands.slice();
+      g.history = this.history.slice();
+      return g;
+    }
+    legal(p = this.toMove) {
+      if (this.hands[p] <= 0) return [];
+      computeLight(this.geo, this.board, this.sc);
+      const n = legalMoves(this.geo, this.board, p, this.sc, this.moveBuf, this.rules.restrict);
+      return Array.from(this.moveBuf.subarray(0, n));
+    }
+    isLegal(j) { return this.legal().includes(j); }
+    // j = -1 means pass. Two passes in a row end the game.
+    play(j) {
+      const p = this.toMove;
+      const before = this.board.slice();
+      const rec = { before, player: p, move: j, waves: [], passed: j < 0, prevLastPass: !!this.lastPass, handsBefore: this.hands.slice() };
+      if (j >= 0) { rec.waves = applyMove(this.geo, this.board, p, j, this.rules, this.sc, true); this.hands[p]--; }
+      this.history.push(rec);
+      if (j < 0 && this.lastPass) this.over = true;
+      this.lastPass = j < 0;
+      this.toMove = 3 - p;
+      if (!this.over) {
+        computeLight(this.geo, this.board, this.sc);
+        const a = this.hands[this.toMove] > 0 ? countLegal(this.geo, this.board, this.toMove, this.sc, this.rules.restrict) : 0;
+        const b = this.hands[p] > 0 ? countLegal(this.geo, this.board, p, this.sc, this.rules.restrict) : 0;
+        if (a === 0 && b === 0) this.over = true;
+      }
+      rec.over = this.over;
+      return rec;
+    }
+    canPlace(p = this.toMove) { if (this.hands[p] <= 0) return false; computeLight(this.geo, this.board, this.sc); return countLegal(this.geo, this.board, p, this.sc, this.rules.restrict) > 0; }
+    undo() {
+      const rec = this.history.pop();
+      if (!rec) return null;
+      this.board = rec.before.slice();
+      this.toMove = rec.player;
+      this.lastPass = rec.prevLastPass;
+      this.hands = rec.handsBefore.slice();
+      this.over = false;
+      return rec;
+    }
+    score() { return score(this.geo, this.board, this.sc, this.rules.komi); }
+    lightMaps() {
+      computeLight(this.geo, this.board, this.sc);
+      return { l1: this.sc.l1.slice(), l2: this.sc.l2.slice(), s1: this.sc.s1.slice(), s2: this.sc.s2.slice() };
+    }
+  }
+
+  // ---------- Search ----------
+  const WIN = 100000;
+
+  class Engine {
+    constructor(geo, rules, weights) {
+      this.geo = geo; this.rules = rules;
+      this.w = Object.assign({ mob: 0.35, tempo: 0.5 }, weights || {});
+      const N = geo.N;
+      this.N = N;
+      this.maxPly = 80;
+      this.boards = []; this.moves = []; this.scs = [];
+      for (let i = 0; i <= this.maxPly + 1; i++) {
+        this.boards.push(new Int8Array(N)); this.moves.push(new Int32Array(N + 1)); this.scs.push(makeScratch(N));
+      }
+      this.orderKeys = []; for (let i = 0; i <= this.maxPly + 1; i++) this.orderKeys.push(new Float64Array(N + 1));
+      // Zobrist (two 32-bit halves)
+      let seed = 0x9E3779B9;
+      const rnd = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed >>> 0; };
+      this.zA = new Uint32Array(N * 3); this.zB = new Uint32Array(N * 3);
+      for (let i = 0; i < N * 3; i++) { this.zA[i] = rnd(); this.zB[i] = rnd(); }
+      this.zSideA = rnd(); this.zSideB = rnd(); this.zPassA = rnd(); this.zPassB = rnd();
+      this.zHA = new Uint32Array(2 * 128); this.zHB = new Uint32Array(2 * 128);
+      for (let i = 0; i < 256; i++) { this.zHA[i] = rnd(); this.zHB[i] = rnd(); }
+      this.ttBits = 20; this.ttSize = 1 << this.ttBits; this.ttMask = this.ttSize - 1;
+      this.ttKey = new Uint32Array(this.ttSize); this.ttDepth = new Int8Array(this.ttSize).fill(-1);
+      this.ttVal = new Float32Array(this.ttSize); this.ttFlag = new Int8Array(this.ttSize); this.ttMove = new Int16Array(this.ttSize);
+      this.history = new Float64Array(3 * N);
+    }
+    hash(board, side, prevPass, h1, h2) {
+      let a = (side === 1 ? 0 : this.zSideA) ^ (prevPass ? this.zPassA : 0) ^ this.zHA[h1 & 127] ^ this.zHA[128 + (h2 & 127)];
+      let b = (side === 1 ? 0 : this.zSideB) ^ (prevPass ? this.zPassB : 0) ^ this.zHB[h1 & 127] ^ this.zHB[128 + (h2 & 127)];
+      for (let i = 0; i < this.N; i++) { const v = board[i]; a ^= this.zA[i * 3 + v]; b ^= this.zB[i * 3 + v]; }
+      return [a >>> 0, b >>> 0];
+    }
+    // Static evaluation from the point of view of `p`. Light for `board` must already be computed into sc.
+    evalWithLight(board, p, sc) {
+      const N = this.N;
+      let lan1 = 0, lan2 = 0, c1 = 0, c2 = 0, m1 = 0, m2 = 0;
+      for (let j = 0; j < N; j++) {
+        const v = board[j];
+        if (v === 1) lan1++; else if (v === 2) lan2++;
+        else {
+          const a = sc.l1[j], b = sc.l2[j];
+          if (a > b) { c1++; m1++; } else if (b > a) { c2++; m2++; } else { m1++; m2++; }
+        }
+      }
+      let s = (lan1 + c1) - (lan2 + c2) - (this.rules.komi || 0) + this.w.mob * (m1 - m2);
+      return p === 1 ? s : -s;
+    }
+    terminalValue(board, p, sc) {
+      const [a, b] = score(this.geo, board, sc, this.rules.komi);
+      const d = p === 1 ? a - b : b - a;
+      return d > 0 ? WIN + d : d < 0 ? -WIN + d : 0;
+    }
+    search(board, side, opts = {}) {
+      const prevPass = !!opts.prevPass;
+      const hands = opts.hands || [0, 999, 999];
+      const H1 = Math.min(hands[1], 127), H2 = Math.min(hands[2], 127);
+      this.rootH = [0, H1, H2];
+      const timeMs = opts.timeMs ?? 1000, maxDepth = opts.maxDepth ?? 64, onDepth = opts.onDepth;
+      this.deadline = Date.now() + timeMs; this.nodes = 0; this.stop = false; this.nodeLimit = opts.nodeLimit ?? Infinity;
+      this.history.fill(0);
+      const b0 = this.boards[0]; b0.set(board);
+      const sc = this.scs[0];
+      computeLight(this.geo, b0, sc);
+      const rootMoves = [];
+      const n = (side === 1 ? H1 : H2) > 0 ? legalMoves(this.geo, b0, side, sc, this.moves[0], this.rules.restrict) : 0;
+      for (let i = 0; i < n; i++) rootMoves.push({ move: this.moves[0][i], score: 0 });
+      rootMoves.push({ move: -1, score: 0 }); // pass is always allowed
+      let best = null, bestDepth = 0, lastScores = null, pv = [];
+      const t0 = Date.now();
+      for (let depth = 1; depth <= maxDepth; depth++) {
+        let alpha = -Infinity, beta = Infinity, bestMove = -1, bestVal = -Infinity;
+        const scores = [];
+        for (let k = 0; k < rootMoves.length; k++) {
+          const m = rootMoves[k].move;
+          const b1 = this.boards[1]; b1.set(b0);
+          let v;
+          if (m < 0) {
+            v = prevPass ? this.terminalValue(b1, side, this.scs[1]) : -this.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, true, H1, H2);
+          } else {
+            applyMove(this.geo, b1, side, m, this.rules, this.scs[1], false);
+            v = -this.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, false, side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
+          }
+          if (this.stop) break;
+          rootMoves[k].score = v; scores.push(v);
+          if (v > bestVal) { bestVal = v; bestMove = m; }
+          if (v > alpha) alpha = v;
+        }
+        if (this.stop) {
+          // Aborted iteration: keep the previous depth's answer, unless a move searched in full at this depth
+          // beat the previous best move (which is always searched first).
+          if (best && scores.length > 1 && bestMove !== rootMoves[0].move && bestVal > scores[0]) best = { move: bestMove, value: best.value, depth: best.depth };
+          break;
+        }
+        rootMoves.sort((x, y) => y.score - x.score);
+        best = { move: bestMove, value: bestVal, depth };
+        bestDepth = depth;
+        lastScores = rootMoves.map(r => ({ move: r.move, score: r.score }));
+        pv = this.extractPV(b0, side, depth, prevPass, bestMove, H1, H2);
+        if (onDepth) onDepth({ depth, move: bestMove, value: bestVal, nodes: this.nodes, ms: Date.now() - t0, pv: pv.slice(), scores: lastScores });
+        if (Math.abs(bestVal) >= WIN - 200) break; // found forced result
+        if (Date.now() > this.deadline) break;
+      }
+      return { move: best ? best.move : rootMoves[0].move, value: best ? best.value : 0, depth: bestDepth, nodes: this.nodes, ms: Date.now() - t0, pv, scores: lastScores || rootMoves.map(r => ({ move: r.move, score: 0 })) };
+    }
+    negamax(board, side, depth, alpha, beta, ply, prevPass, h1, h2) {
+      this.nodes++;
+      if ((this.nodes & 1023) === 0 && (Date.now() > this.deadline || this.nodes > this.nodeLimit)) this.stop = true;
+      if (this.stop) return 0;
+      const sc = this.scs[ply];
+      computeLight(this.geo, board, sc);
+      const moves = this.moves[ply];
+      const myH = side === 1 ? h1 : h2, opH = side === 1 ? h2 : h1;
+      let n = myH > 0 ? legalMoves(this.geo, board, side, sc, moves, this.rules.restrict) : 0;
+      if (n === 0 && (prevPass || opH <= 0 || countLegal(this.geo, board, 3 - side, sc, this.rules.restrict) === 0)) return this.terminalValue(board, side, sc);
+      if (depth <= 0 || ply >= this.maxPly) return this.evalWithLight(board, side, sc) + this.w.tempo;
+      // TT probe
+      const [ha, hb] = this.hash(board, side, prevPass, h1, h2);
+      const slot = ha & this.ttMask;
+      let ttMove = -1;
+      if (this.ttKey[slot] === hb && this.ttDepth[slot] >= 0) {
+        ttMove = this.ttMove[slot];
+        if (this.ttDepth[slot] >= depth) {
+          const v = this.ttVal[slot], f = this.ttFlag[slot];
+          if (f === 0) return v;
+          if (f === 1 && v >= beta) return v;
+          if (f === 2 && v <= alpha) return v;
+        }
+      }
+      // ordering: TT move first, then history
+      const keys = this.orderKeys[ply];
+      const hist = this.history, base = side * this.N;
+      moves[n] = -1; n++; // pass is a move; ordered last unless the TT prefers it
+      for (let i = 0; i < n; i++) { const m = moves[i]; keys[i] = (m === ttMove ? 1e12 : 0) + (m < 0 ? -1 : hist[base + m]); }
+      // insertion sort (n <= 91)
+      for (let i = 1; i < n; i++) {
+        const km = keys[i], mm = moves[i]; let k = i - 1;
+        while (k >= 0 && keys[k] < km) { keys[k + 1] = keys[k]; moves[k + 1] = moves[k]; k--; }
+        keys[k + 1] = km; moves[k + 1] = mm;
+      }
+      const alpha0 = alpha;
+      let bestVal = -Infinity, bestMove = moves[0];
+      const nb = this.boards[ply + 1];
+      for (let i = 0; i < n; i++) {
+        const m = moves[i];
+        nb.set(board);
+        let v;
+        if (m < 0) v = prevPass ? this.terminalValue(nb, side, this.scs[ply + 1]) : -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, true, h1, h2);
+        else { applyMove(this.geo, nb, side, m, this.rules, this.scs[ply + 1], false); v = -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, false, side === 1 ? h1 - 1 : h1, side === 2 ? h2 - 1 : h2); }
+        if (this.stop) return 0;
+        if (v > bestVal) { bestVal = v; bestMove = m; }
+        if (v > alpha) alpha = v;
+        if (alpha >= beta) { if (m >= 0) hist[base + m] += depth * depth; break; }
+      }
+      // TT store
+      this.ttKey[slot] = hb; this.ttDepth[slot] = depth; this.ttVal[slot] = bestVal; this.ttMove[slot] = bestMove;
+      this.ttFlag[slot] = bestVal <= alpha0 ? 2 : bestVal >= beta ? 1 : 0;
+      return bestVal;
+    }
+    extractPV(board, side, depth, prevPass, firstMove, H1, H2) {
+      const pv = []; const b = board.slice(); let s = side, pp = !!prevPass; const sc = makeScratch(this.N);
+      const hh = [0, H1, H2];
+      for (let d = 0; d < depth; d++) {
+        computeLight(this.geo, b, sc);
+        const buf = new Int32Array(this.N);
+        const n = hh[s] > 0 ? legalMoves(this.geo, b, s, sc, buf, this.rules.restrict) : 0;
+        let m;
+        if (d === 0) m = firstMove;
+        else {
+          const [ha, hb] = this.hash(b, s, pp, hh[1], hh[2]); const slot = ha & this.ttMask;
+          if (this.ttKey[slot] !== hb) break;
+          m = this.ttMove[slot];
+        }
+        if (m >= 0 && !Array.from(buf.subarray(0, n)).includes(m)) break;
+        pv.push({ move: m, player: s });
+        if (m < 0) { if (pp) break; pp = true; }
+        else { applyMove(this.geo, b, s, m, this.rules, sc, false); pp = false; hh[s]--; }
+        s = 3 - s;
+      }
+      return pv;
+    }
+  }
+
+  const api = { makeGeometry, makeScratch, computeLight, legalMoves, countLegal, applyMove, score, Game, Engine, WIN, DIRS };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Fawanees = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+'use strict';
+const F = window.Fawanees;
+const RULES = { K: 3, restrict: false, supply: 24, range: 2 };
+const RADIUS = 5;
+const LEVELS = [
+  { name: 'lv0', ms: 120, depth: 1, noise: 3.0 },
+  { name: 'lv1', ms: 350, depth: 2, noise: 0.8 },
+  { name: 'lv2', ms: 1000, depth: 64, noise: 0 },
+  { name: 'lv3', ms: 2600, depth: 64, noise: 0 },
+];
+const COLORS = { 1: { glow: '#f2b447', core: '#ffe9b8', rgb: '242,180,71' }, 2: { glow: '#3cc8cf', core: '#c8f7f8', rgb: '60,200,207' } };
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------------- i18n ----------------
+const T = {
+  ar: {
+    title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
+    showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
+    credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة: أحمد عدوان.', how: 'كيف صُنعت؟',
+    mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على جهاز واحد', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
+    lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
+    gotIt: 'فهمت', close: 'إغلاق', again: 'العب مرة أخرى',
+    gold: 'الذهبي', turq: 'الفيروزي', you: 'أنت', machine: 'الآلة', player: 'اللاعب',
+    left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`,
+    yourTurn: 'دورك: اضغط خانة لترى أثرها، ثم اضغطها مرة ثانية', turnOf: n => `دور ${n}`, thinking: 'الآلة تفكّر…',
+    confirmHint: 'اضغط مرة ثانية للتأكيد', swapOffer: 'يحق لك أن تأخذ فانوس الافتتاح لنفسك بدل الرد عليه',
+    aiSwapped: 'أخذت الآلة فانوس افتتاحك لنفسها: رأت أنه قوي', aiNoSwap: 'قررت الآلة ألا تأخذ فانوسك',
+    depthLine: (d, n, s) => `بحثت حتى العمق ${d}، وفحصت ${n} وضعية (${s} في الثانية)`,
+    planLine: 'خطتها للحركات القادمة مرسومة على اللوح بالأرقام', forced: 'ترى الآلة نتيجة مضمونة', 
+    predRight: 'توقّعتُ حركتك هذه', predWrong: 'توقّعتُ أن تلعب في الخانة المعلّمة', predScore: (a, b) => `توقّعتُ ${a} من ${b} حركات لك`,
+    chain: n => `سلسلة: تحوّل ${n}`, passed: n => `${n} مرّر`, over: 'انتهت اللعبة', winner: n => `فاز ${n}`, draw: 'تعادل',
+    finalScore: (a, b) => `النتيجة: الذهبي ${a}، الفيروزي ${b}`, biggest: n => `أكبر سلسلة في المباراة: ${n} فوانيس`, mega: 'مليون', k: 'ألف',
+    rulesHtml: `<p>الهدف أن تنتهي بنقاط أكثر. نقاطك هي فوانيسك على اللوح، مضافاً إليها الخانات الفارغة التي تضيئها أكثر من خصمك.</p>
+<ol>
+<li>في دورك ضع فانوساً في أي خانة فارغة، أو مرّر.</li>
+<li>كل فانوس يضيء خانتين في كل اتجاه من اتجاهاته الستة، ما لم يعترضه فانوس آخر.</li>
+<li>الخانة الفارغة لمن يضيئها بعدد أكبر من الفوانيس.</li>
+<li>إذا كان فانوسك في مرمى ثلاثة فوانيس للخصم أو أكثر، على خط مستقيم وعلى بعد خانتين أو أقل، وكانت أكثر من فوانيسك التي تراه، يتحوّل إلى لون الخصم. والتحوّل قد يطلق سلسلة تحوّلات.</li>
+<li>لكل لاعب 24 فانوساً. تنتهي اللعبة عندما تنفد الفوانيس، أو يمرّر اللاعبان على التوالي.</li>
+<li>بعد أول فانوس في اللعبة، يحق للاعب الثاني أن يأخذه لنفسه بدل الرد عليه. لذلك افتتح بحركة متوازنة.</li>
+</ol>
+<p>نصيحة: اضغط أي خانة مرة واحدة لترى الضوء الذي ستكسبه والفوانيس التي ستتحوّل، ثم اضغطها مرة ثانية لتلعب.</p>`,
+    howHtml: `<p>القواعد والاسم والموازنة والذكاء الاصطناعي كلها من صنع Claude، نموذج ذكاء اصطناعي من Anthropic.</p>
+<p>بعد تصميم النسخة الأولى من القواعد، لعبت الآلة ضد نفسها نحو 4000 مباراة لاختبارها. هذه بعض الأشياء التي كشفتها التجارب وغيّرت القواعد:</p>
+<ol>
+<li>في النسخة الأولى كان اللاعب الأول يفوز في 74 إلى 86٪ من المباريات.</li>
+<li>عندما كان الضوء يصل إلى حافة اللوح، كانت المباراة تُحسم بعد نحو خُمسها الأول. فأصبح مدى الضوء خانتين.</li>
+<li>عندما كانت الفوانيس المأسورة تُزال بدل أن تتحوّل، لم تكن المباريات تنتهي أبداً.</li>
+<li>تبيّن أن الافتتاح في المركز يمنح الأول نحو 31٪ فقط، وأن الحلقات الوسطى تمنحه حتى 63٪. لذلك أُضيفت قاعدة أخذ فانوس الافتتاح.</li>
+</ol>
+<p>الآلة التي تلاعبك لم ترَ هذه اللعبة قبل أن تُخترع، ولم يدرّبها أحد عليها. هي تبحث في شجرة الاحتمالات مباشرة داخل متصفحك، بخوارزمية ألفا-بيتا مع جدول تحويلات.</p>
+<p>هذه نسخة تجريبية.</p>`,
+  },
+  en: {
+    title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
+    showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
+    credit: 'Rules, balancing and AI by Claude (Anthropic). Idea by Ahmed Adwan.', how: 'How was it made?',
+    mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players, one device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
+    lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
+    gotIt: 'Got it', close: 'Close', again: 'Play again',
+    gold: 'Gold', turq: 'Turquoise', you: 'You', machine: 'Machine', player: 'Player',
+    left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`,
+    yourTurn: 'Your turn: tap a cell to preview it, then tap it again', turnOf: n => `${n} to move`, thinking: 'The machine is thinking…',
+    confirmHint: 'Tap again to confirm', swapOffer: 'You may take the opening lantern for yourself instead of answering it',
+    aiSwapped: 'The machine took your opening lantern: it judged it too strong', aiNoSwap: 'The machine chose not to take your lantern',
+    depthLine: (d, n, s) => `Searched to depth ${d}, examined ${n} positions (${s} per second)`,
+    planLine: 'Its plan for the next moves is numbered on the board', forced: 'The machine sees a forced result',
+    predRight: 'I predicted this move', predWrong: 'I predicted you would play on the marked cell', predScore: (a, b) => `I predicted ${a} of your ${b} moves`,
+    chain: n => `Chain: ${n} flipped`, passed: n => `${n} passed`, over: 'Game over', winner: n => `${n} wins`, draw: 'Draw',
+    finalScore: (a, b) => `Score: gold ${a}, turquoise ${b}`, biggest: n => `Biggest chain of the game: ${n} lanterns`, mega: 'M', k: 'k',
+    rulesHtml: `<p>Finish with more points. Your points are your lanterns on the board plus the empty cells you light more than your opponent.</p>
+<ol>
+<li>On your turn, place a lantern on any empty cell, or pass.</li>
+<li>Each lantern lights two cells in each of its six directions, unless another lantern blocks the way.</li>
+<li>An empty cell belongs to whoever lights it with more lanterns.</li>
+<li>If your lantern is in the line of fire of three or more enemy lanterns (in a straight line, two cells away or closer), and they outnumber your lanterns that see it, it switches colour. A switch can set off a chain.</li>
+<li>Each player has 24 lanterns. The game ends when the lanterns run out, or both players pass in a row.</li>
+<li>After the first lantern of the game, the second player may take it as their own instead of answering it. So open with a balanced move.</li>
+</ol>
+<p>Tip: tap any cell once to see the light you would gain and the lanterns that would switch, then tap it again to play.</p>`,
+    howHtml: `<p>The rules, the name, the balancing and the AI were all made by Claude, an AI model from Anthropic.</p>
+<p>After the first draft of the rules, the machine played itself about 4,000 times to test them. Some things those games revealed, which changed the rules:</p>
+<ol>
+<li>In the first version, the first player won 74 to 86% of games.</li>
+<li>When light reached the edge of the board, games were decided within roughly the first fifth. Light now travels two cells.</li>
+<li>When captured lanterns were removed instead of switching sides, games never ended.</li>
+<li>Opening in the centre gives the first player only about 31%, while the middle rings give up to 63%. That is why the opening swap rule exists.</li>
+</ol>
+<p>The machine playing you had never seen this game before it was invented, and nobody trained it. It searches the tree of possibilities directly in your browser, using alpha-beta search with a transposition table.</p>
+<p>This is a prototype.</p>`,
+  },
+};
+let lang = 'ar';
+try { lang = localStorage.getItem('fw-lang') || 'ar'; } catch (e) {}
+const t = (k, ...a) => { const v = T[lang][k]; return typeof v === 'function' ? v(...a) : v; };
+function applyLang() {
+  document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.getElementById('btnLang').textContent = lang === 'ar' ? 'EN' : 'عربي';
+  document.getElementById('rulesBody').innerHTML = t('rulesHtml');
+  document.getElementById('howBody').innerHTML = t('howHtml');
+  updatePanel();
+}
+
+// ---------------- state ----------------
+let game, engine, cfg = { mode: 'ai', level: 2, human: 1 };
+let selected = -1, busy = false, lastInfo = null, plan = [], prediction = null, predStats = { hit: 0, total: 0 }, revealCell = -1;
+let anim = null, biggestChain = 0, swapUsed = false, openingCell = -1, cursor = -1, demoTimer = null;
+const probHistory = [];
+
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+let geo, size = 20, cx = 0, cy = 0, dpr = 1;
+
+function newGame(opts) {
+  Object.assign(cfg, opts || {});
+  if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+  game = new F.Game(RADIUS, RULES);
+  geo = game.geo;
+  engine = new F.Engine(geo, RULES, { mob: 0 });
+  selected = -1; busy = false; lastInfo = null; plan = []; prediction = null; predStats = { hit: 0, total: 0 }; revealCell = -1;
+  biggestChain = 0; swapUsed = false; openingCell = -1; cursor = geo.index.get('0,0'); probHistory.length = 0;
+  resize(); updatePanel(); draw();
+  setTimeout(nextTurn, 250);
+}
+
+const isHuman = p => cfg.mode === 'pvp' || (cfg.mode === 'ai' && p === cfg.human);
+const nameOf = p => cfg.mode === 'ai' ? (p === cfg.human ? t('you') : t('machine')) : (p === 1 ? t('gold') : t('turq'));
+
+// ---------------- geometry / drawing ----------------
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  canvas.width = Math.round(rect.width * dpr); canvas.height = Math.round(rect.height * dpr);
+  const W = canvas.width, H = canvas.height, R = RADIUS;
+  size = Math.min(W / (3 * R + 2.2), H / (Math.sqrt(3) * (2 * R + 1) + 0.4));
+  cx = W / 2; cy = H / 2;
+}
+function px(i) { const c = geo.cells[i]; return [cx + size * 1.5 * c.q, cy + size * Math.sqrt(3) * (c.r + c.q / 2)]; }
+function cellAt(x, y) {
+  const X = (x - cx) / size, Y = (y - cy) / size;
+  let q = (2 / 3) * X, r = (-1 / 3) * X + (Math.sqrt(3) / 3) * Y, s = -q - r;
+  let rq = Math.round(q), rr = Math.round(r), rs = Math.round(s);
+  const dq = Math.abs(rq - q), dr = Math.abs(rr - r), ds = Math.abs(rs - s);
+  if (dq > dr && dq > ds) rq = -rr - rs; else if (dr > ds) rr = -rq - rs;
+  const i = geo.index.get(rq + ',' + rr);
+  return i === undefined ? -1 : i;
+}
+function hexPath(x, y, s) { ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k; const X = x + s * Math.cos(a), Y = y + s * Math.sin(a); k ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.closePath(); }
+
+function drawLantern(x, y, s, p, alpha = 1, glow = 1) {
+  const c = COLORS[p]; ctx.save(); ctx.globalAlpha = alpha;
+  const g = ctx.createRadialGradient(x, y, 0, x, y, s * 1.25);
+  g.addColorStop(0, `rgba(${c.rgb},${0.55 * glow})`); g.addColorStop(1, `rgba(${c.rgb},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, s * 1.25, 0, Math.PI * 2); ctx.fill();
+  const u = s * 0.5;
+  ctx.fillStyle = c.glow; // cap
+  ctx.beginPath(); ctx.moveTo(x, y - u * 1.55); ctx.lineTo(x + u * 0.42, y - u * 1.12); ctx.lineTo(x - u * 0.42, y - u * 1.12); ctx.closePath(); ctx.fill();
+  ctx.fillRect(x - u * 0.12, y - u * 1.95, u * 0.24, u * 0.42);
+  ctx.beginPath(); // body
+  ctx.moveTo(x - u * 0.7, y - u * 1.02); ctx.lineTo(x + u * 0.7, y - u * 1.02); ctx.lineTo(x + u * 0.9, y - u * 0.15);
+  ctx.lineTo(x + u * 0.7, y + u * 0.92); ctx.lineTo(x - u * 0.7, y + u * 0.92); ctx.lineTo(x - u * 0.9, y - u * 0.15); ctx.closePath();
+  ctx.fillStyle = c.core; ctx.fill(); ctx.lineWidth = Math.max(1, u * 0.16); ctx.strokeStyle = c.glow; ctx.stroke();
+  ctx.globalAlpha = alpha * 0.55; ctx.beginPath(); ctx.moveTo(x - u * 0.28, y - u * 1.0); ctx.lineTo(x - u * 0.28, y + u * 0.9); ctx.moveTo(x + u * 0.28, y - u * 1.0); ctx.lineTo(x + u * 0.28, y + u * 0.9); ctx.lineWidth = Math.max(1, u * 0.08); ctx.stroke();
+  ctx.globalAlpha = alpha; ctx.fillStyle = c.glow; ctx.fillRect(x - u * 0.8, y + u * 0.92, u * 1.6, u * 0.28);
+  ctx.restore();
+}
+
+function draw(now) {
+  if (!geo) return;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  // board state to show (animation may override)
+  const board = anim ? anim.board : game.board;
+  const sc = F.makeScratch(geo.N); geo.range = RULES.range; F.computeLight(geo, board, sc);
+  // preview (selected cell)
+  let prev = null;
+  if (selected >= 0 && !anim && board[selected] === 0) {
+    const b2 = board.slice(); const sc2 = F.makeScratch(geo.N);
+    const waves = F.applyMove(geo, b2, game.toMove, selected, RULES, sc2, true);
+    F.computeLight(geo, b2, sc2);
+    prev = { board: b2, sc: sc2, flips: new Set([].concat(...waves)) };
+  }
+  const L = prev ? prev.sc : sc, B = prev ? prev.board : board;
+  // tiles
+  for (let i = 0; i < geo.N; i++) {
+    const [x, y] = px(i);
+    hexPath(x, y, size * 0.95); ctx.fillStyle = '#1f1a3a'; ctx.fill();
+    if (B[i] === 0) {
+      const a = L.l1[i], b = L.l2[i];
+      if (a > b) { ctx.fillStyle = `rgba(242,180,71,${0.10 + 0.08 * Math.min(a, 4)})`; ctx.fill(); }
+      else if (b > a) { ctx.fillStyle = `rgba(60,200,207,${0.10 + 0.08 * Math.min(b, 4)})`; ctx.fill(); }
+      else if (a > 0) { ctx.fillStyle = 'rgba(214,205,245,0.09)'; ctx.fill(); }
+    }
+    ctx.lineWidth = Math.max(1, size * 0.05); ctx.strokeStyle = '#3a3363'; ctx.stroke();
+  }
+  // beams
+  for (let i = 0; i < geo.N; i++) {
+    const p = B[i]; if (!p) continue;
+    const [x0, y0] = px(i); const col = COLORS[p].rgb;
+    for (let d = 0; d < 6; d++) {
+      const k0 = geo.rayStart[i * 6 + d], len = Math.min(geo.rayLen[i * 6 + d], RULES.range); let last = -1;
+      for (let k = k0; k < k0 + len; k++) { const j = geo.rayCells[k]; if (B[j]) break; last = j; }
+      if (last < 0) continue;
+      const [x1, y1] = px(last);
+      ctx.strokeStyle = `rgba(${col},0.16)`; ctx.lineWidth = size * 0.28; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.strokeStyle = `rgba(${col},0.38)`; ctx.lineWidth = Math.max(1, size * 0.05); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    }
+  }
+  // plan ghosts (machine's expected line)
+  if (document.getElementById('optThoughts').checked && plan.length && !prev) {
+    plan.forEach((pm, k) => {
+      if (pm.move < 0 || board[pm.move]) return;
+      const [x, y] = px(pm.move); const col = COLORS[pm.player].glow;
+      ctx.save(); ctx.setLineDash([size * 0.18, size * 0.14]); ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, size * 0.07);
+      ctx.beginPath(); ctx.arc(x, y, size * 0.5, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = col; ctx.font = `700 ${Math.round(size * 0.55)}px "IBM Plex Sans Arabic", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(k + 1), x, y + size * 0.03);
+    });
+  }
+  // lanterns
+  const tNow = performance.now();
+  for (let i = 0; i < geo.N; i++) {
+    const p = B[i]; if (!p) continue;
+    const [x, y] = px(i);
+    if (anim && anim.flipAt && anim.flipAt[i] !== undefined) {
+      const prog = Math.min(1, Math.max(0, (tNow - anim.flipAt[i]) / 380));
+      if (prog > 0 && prog < 1) { ctx.strokeStyle = `rgba(${COLORS[p].rgb},${1 - prog})`; ctx.lineWidth = size * 0.1; ctx.beginPath(); ctx.arc(x, y, size * (0.5 + prog * 0.9), 0, Math.PI * 2); ctx.stroke(); }
+    }
+    const isNew = anim && anim.placed === i;
+    const sc0 = isNew ? Math.min(1, Math.max(0, (tNow - anim.t0) / 260)) : 1;
+    drawLantern(x, y, size * 0.95 * (0.6 + 0.4 * sc0), p, prev && i === selected ? 0.75 : 1, isNew ? 1.6 - 0.6 * sc0 : 1);
+    if (prev && prev.flips.has(i)) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, size * 0.08); ctx.beginPath(); ctx.arc(x, y, size * 0.72, 0, Math.PI * 2); ctx.stroke(); }
+  }
+  // last move marker
+  const lastRec = game.history[game.history.length - 1];
+  if (!prev && lastRec && lastRec.move >= 0 && !anim) {
+    const [x, y] = px(lastRec.move); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1, size * 0.05);
+    hexPath(x, y, size * 0.86); ctx.stroke();
+  }
+  // prediction reveal
+  if (revealCell >= 0) {
+    const [x, y] = px(revealCell); ctx.strokeStyle = '#ffe2a0'; ctx.lineWidth = Math.max(2, size * 0.1); ctx.setLineDash([size * 0.15, size * 0.1]);
+    hexPath(x, y, size * 0.8); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // selection / keyboard cursor
+  if (selected >= 0) { const [x, y] = px(selected); ctx.strokeStyle = COLORS[game.toMove].glow; ctx.lineWidth = Math.max(2, size * 0.1); hexPath(x, y, size * 0.9); ctx.stroke(); }
+  else if (document.activeElement === canvas && cursor >= 0) { const [x, y] = px(cursor); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; hexPath(x, y, size * 0.9); ctx.stroke(); }
+}
+
+function drawIcons() {
+  document.querySelectorAll('.side').forEach((el, k) => {
+    const c = el.querySelector('canvas.icon'); const cx2 = c.getContext('2d');
+    cx2.clearRect(0, 0, 68, 68);
+    const p = k + 1, col = COLORS[p];
+    cx2.save(); const g = cx2.createRadialGradient(34, 34, 0, 34, 34, 32); g.addColorStop(0, `rgba(${col.rgb},0.5)`); g.addColorStop(1, `rgba(${col.rgb},0)`);
+    cx2.fillStyle = g; cx2.beginPath(); cx2.arc(34, 34, 32, 0, 7); cx2.fill();
+    cx2.fillStyle = col.core; cx2.strokeStyle = col.glow; cx2.lineWidth = 3;
+    cx2.beginPath(); cx2.moveTo(22, 20); cx2.lineTo(46, 20); cx2.lineTo(50, 34); cx2.lineTo(46, 50); cx2.lineTo(22, 50); cx2.lineTo(18, 34); cx2.closePath(); cx2.fill(); cx2.stroke();
+    cx2.fillStyle = col.glow; cx2.beginPath(); cx2.moveTo(34, 8); cx2.lineTo(41, 17); cx2.lineTo(27, 17); cx2.closePath(); cx2.fill(); cx2.fillRect(20, 50, 28, 5);
+    cx2.restore();
+  });
+}
+
+// ---------------- panel ----------------
+function fmtNum(n) {
+  if (lang === 'ar') { if (n >= 1e6) return (n / 1e6).toFixed(1) + ' ' + t('mega'); if (n >= 1e4) return Math.round(n / 1e3) + ' ' + t('k'); return String(n); }
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + t('mega'); if (n >= 1e4) return Math.round(n / 1e3) + t('k'); return String(n);
+}
+function winProb1() {
+  if (!lastInfo) return 0.5;
+  const v1 = lastInfo.side === 1 ? lastInfo.value : -lastInfo.value;
+  if (Math.abs(v1) >= F.WIN - 500) return v1 > 0 ? 0.99 : 0.01;
+  return 1 / (1 + Math.exp(-v1 / 7));
+}
+function updatePanel(extra) {
+  if (!game) return;
+  const [a, b] = game.score();
+  document.getElementById('pts1').textContent = a; document.getElementById('pts2').textContent = b;
+  document.getElementById('name1').textContent = `${nameOf(1)} (${t('gold')})`.replace(`${t('gold')} (${t('gold')})`, t('gold'));
+  document.getElementById('name2').textContent = `${nameOf(2)} (${t('turq')})`.replace(`${t('turq')} (${t('turq')})`, t('turq'));
+  document.getElementById('hand1').textContent = t('left', game.hands[1]); document.getElementById('hand2').textContent = t('left', game.hands[2]);
+  document.getElementById('side1').classList.toggle('turn', !game.over && game.toMove === 1);
+  document.getElementById('side2').classList.toggle('turn', !game.over && game.toMove === 2);
+  const p1 = winProb1();
+  document.getElementById('meterFill').style.width = (p1 * 100).toFixed(1) + '%';
+  document.getElementById('meter1').textContent = t('chance', t('gold'), Math.round(p1 * 100));
+  document.getElementById('meter2').textContent = t('chance', t('turq'), 100 - Math.round(p1 * 100));
+  let status;
+  if (game.over) status = t('over');
+  else if (busy && !isHuman(game.toMove)) status = t('thinking');
+  else if (isHuman(game.toMove)) status = cfg.mode === 'pvp' ? t('turnOf', t(game.toMove === 1 ? 'gold' : 'turq')) : t('yourTurn');
+  else status = t('turnOf', nameOf(game.toMove));
+  document.getElementById('status').textContent = status;
+  const mind = document.getElementById('mind'); mind.innerHTML = '';
+  const add = (txt, cls) => { const p = document.createElement('p'); p.textContent = txt; if (cls) p.className = cls; mind.appendChild(p); };
+  if (lastInfo && cfg.mode !== 'pvp') {
+    add(t('depthLine', lastInfo.depth, fmtNum(lastInfo.nodes), fmtNum(Math.round(lastInfo.nodes / Math.max(0.001, lastInfo.ms / 1000)))));
+    if (Math.abs(lastInfo.value) >= F.WIN - 500) add(t('forced'));
+    else if (plan.length && document.getElementById('optThoughts').checked) add(t('planLine'));
+  }
+  if (predStats.total > 0 && cfg.mode === 'ai') add(t('predScore', predStats.hit, predStats.total), 'pred');
+  if (extra) add(extra, 'pred');
+  const human = isHuman(game.toMove) && !game.over && !busy;
+  document.getElementById('btnPass').disabled = !human;
+  document.getElementById('btnHint').disabled = !human;
+  document.getElementById('btnUndo').disabled = busy || game.history.length === 0 || cfg.mode === 'demo';
+  const canSwap = human && game.history.length === 1 && !swapUsed && game.history[0].move >= 0;
+  document.getElementById('btnSwap').hidden = !canSwap;
+}
+let toastTimer = null;
+function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2200); }
+
+// ---------------- moves & animation ----------------
+function playMove(j, after) {
+  const p = game.toMove;
+  const rec = game.play(j);
+  if (j === -1) { toast(t('passed', cfg.mode === 'ai' ? nameOf(p) : t(p === 1 ? 'gold' : 'turq'))); updatePanel(); draw(); return after && after(rec); }
+  if (game.history.length === 1) openingCell = j;
+  const flipsTotal = rec.waves.reduce((s, w) => s + w.length, 0);
+  biggestChain = Math.max(biggestChain, flipsTotal);
+  const board0 = rec.before.slice(); board0[j] = p;
+  const t0 = performance.now(); const flipAt = {};
+  const waveDelay = reduceMotion ? 0 : 420;
+  rec.waves.forEach((w, k) => w.forEach(i => { flipAt[i] = t0 + 300 + k * waveDelay; }));
+  anim = { board: board0, placed: j, t0, flipAt };
+  const total = reduceMotion ? 0 : 300 + rec.waves.length * waveDelay + 250;
+  if (flipsTotal >= 2) setTimeout(() => toast(t('chain', flipsTotal)), reduceMotion ? 0 : 300);
+  const step = () => {
+    const now = performance.now();
+    rec.waves.forEach((w, k) => { if (now >= t0 + 300 + k * waveDelay) w.forEach(i => { anim.board[i] = p; }); });
+    draw();
+    if (now - t0 < total) requestAnimationFrame(step);
+    else { anim = null; draw(); updatePanel(); after && after(rec); }
+  };
+  requestAnimationFrame(step);
+}
+
+function nextTurn() {
+  updatePanel(); draw();
+  if (game.over) return showOver();
+  const p = game.toMove;
+  if (!game.canPlace(p) && !isHuman(p)) { busy = false; return playMove(-1, () => setTimeout(nextTurn, 350)); }
+  if (isHuman(p)) {
+    busy = false; updatePanel();
+    if (game.history.length === 1 && !swapUsed) toast(t('swapOffer'));
+    if (cfg.mode === 'ai' && document.getElementById('optPredict').checked) setTimeout(makePrediction, 60);
+    return;
+  }
+  busy = true; updatePanel(); draw();
+  setTimeout(() => machineMove(p), 60);
+}
+
+function searchFor(p, ms, depth) {
+  const res = engine.search(game.board, p, { timeMs: ms, maxDepth: depth, prevPass: game.lastPass, hands: game.hands });
+  return res;
+}
+
+function ringOf(i) { const c = geo.cells[i]; return Math.max(Math.abs(c.q), Math.abs(c.r), Math.abs(c.q + c.r)); }
+
+function machineMove(p) {
+  const lv = LEVELS[cfg.mode === 'demo' ? 2 : cfg.level];
+  // Opening: pick a balanced first lantern (edge or first ring, per the simulations)
+  if (game.history.length === 0) {
+    const cands = []; for (let i = 0; i < geo.N; i++) { const r = ringOf(i); if (r === 1 || r === RADIUS) cands.push(i); }
+    const j = cands[Math.floor(Math.random() * cands.length)];
+    plan = []; lastInfo = null; busy = false;
+    return playMove(j, () => setTimeout(nextTurn, 300));
+  }
+  // Swap decision as the second player: the simulations show rings 1-3 favour the opener
+  if (game.history.length === 1 && !swapUsed && game.history[0].move >= 0) {
+    const r = ringOf(game.history[0].move);
+    swapUsed = true;
+    if (r >= 1 && r <= 3) { doSwap(); busy = false; toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
+    if (cfg.mode === 'ai') toast(t('aiNoSwap'));
+  }
+  let res = searchFor(p, lv.ms, lv.depth);
+  let move = res.move;
+  if (lv.noise > 0 && res.scores && res.scores.length > 1) {
+    // weaker levels: pick among moves near the best with some randomness
+    const best = res.scores[0].score; const pool = res.scores.filter(s => s.score >= best - lv.noise);
+    move = pool[Math.floor(Math.random() * pool.length)].move;
+  }
+  lastInfo = { value: res.value, depth: res.depth, nodes: res.nodes, ms: res.ms, side: p };
+  plan = (res.pv || []).slice(1, 5);
+  busy = false;
+  playMove(move, () => setTimeout(nextTurn, cfg.mode === 'demo' ? 700 : 150));
+}
+
+function doSwap() {
+  // The second player takes the opening lantern: it becomes theirs, and the opener moves again as the other colour.
+  const j = game.history[0].move;
+  game.board[j] = 2; game.hands = [0, 24, 23]; game.toMove = 1; swapUsed = true;
+  game.history.push({ before: game.history[0].before.slice(), player: 2, move: -2, waves: [], passed: false, prevLastPass: false, handsBefore: [0, 23, 24], swap: true });
+  plan = []; lastInfo = null; updatePanel(); draw();
+}
+
+function makePrediction() {
+  if (!isHuman(game.toMove) || busy || game.over) return;
+  const res = searchFor(game.toMove, 280, 64);
+  prediction = res ? res.move : null;
+}
+
+function humanPlay(j) {
+  if (busy || game.over || !isHuman(game.toMove)) return;
+  selected = -1;
+  const p = game.toMove;
+  let msg = null;
+  if (cfg.mode === 'ai' && prediction !== null && document.getElementById('optPredict').checked) {
+    predStats.total++;
+    if (prediction === j) { predStats.hit++; msg = t('predRight'); }
+    else if (prediction >= 0) { msg = t('predWrong'); revealCell = prediction; setTimeout(() => { revealCell = -1; draw(); }, 1800); }
+  }
+  prediction = null;
+  busy = true;
+  playMove(j, () => { busy = false; updatePanel(msg); if (msg) toast(msg); setTimeout(nextTurn, 250); });
+}
+
+function showOver() {
+  const [a, b] = game.score();
+  const dlg = document.getElementById('dlgOver');
+  const winnerName = a > b ? (cfg.mode === 'ai' ? nameOf(1) : t('gold')) : (cfg.mode === 'ai' ? nameOf(2) : t('turq'));
+  document.getElementById('overTitle').textContent = a === b ? t('draw') : t('winner', winnerName);
+  const lines = [t('finalScore', a, b)];
+  if (biggestChain >= 2) lines.push(t('biggest', biggestChain));
+  if (predStats.total > 0 && cfg.mode === 'ai') lines.push(t('predScore', predStats.hit, predStats.total));
+  document.getElementById('overBody').innerHTML = lines.map(l => `<p>${l}</p>`).join('');
+  updatePanel();
+  if (cfg.mode === 'demo') { demoTimer = setTimeout(() => newGame(), 4000); return; }
+  if (!dlg.open) dlg.showModal();
+}
+
+// ---------------- input ----------------
+function pointerCell(e) { const r = canvas.getBoundingClientRect(); return cellAt((e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr); }
+canvas.addEventListener('click', e => {
+  if (busy || !game || game.over || !isHuman(game.toMove)) return;
+  const j = pointerCell(e); if (j < 0 || game.board[j] !== 0) { selected = -1; draw(); return; }
+  if (selected === j) humanPlay(j); else { selected = j; cursor = j; draw(); if (e.pointerType !== 'mouse') toast(t('confirmHint')); }
+});
+canvas.addEventListener('mousemove', e => {
+  if (busy || !game || game.over || !isHuman(game.toMove) || matchMedia('(hover: none)').matches) return;
+  const j = pointerCell(e); const s = (j >= 0 && game.board[j] === 0) ? j : -1;
+  if (s !== selected) { selected = s; draw(); }
+});
+canvas.addEventListener('mouseleave', () => { if (selected >= 0 && !matchMedia('(hover: none)').matches) { selected = -1; draw(); } });
+canvas.addEventListener('keydown', e => {
+  if (!game) return;
+  const DIR = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (DIR[e.key]) {
+    e.preventDefault(); const c = geo.cells[cursor < 0 ? 0 : cursor]; const q = c.q + DIR[e.key][0], r = c.r + DIR[e.key][1];
+    const i = geo.index.get(q + ',' + r); if (i !== undefined) { cursor = i; selected = game.board[i] === 0 && isHuman(game.toMove) ? i : -1; draw(); }
+  } else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (cursor >= 0 && game.board[cursor] === 0) { if (selected === cursor) humanPlay(cursor); else { selected = cursor; draw(); } } }
+});
+canvas.addEventListener('focus', () => draw()); canvas.addEventListener('blur', () => draw());
+
+document.getElementById('btnPass').onclick = () => { if (busy || !isHuman(game.toMove)) return; selected = -1; prediction = null; busy = true; playMove(-1, () => { busy = false; setTimeout(nextTurn, 200); }); };
+document.getElementById('btnSwap').onclick = () => { if (!isHuman(game.toMove)) return; selected = -1; doSwap(); setTimeout(nextTurn, 300); };
+document.getElementById('btnHint').onclick = () => {
+  if (busy || !isHuman(game.toMove)) return;
+  const res = searchFor(game.toMove, 700, 64); if (res && res.move >= 0) { selected = res.move; cursor = res.move; draw(); toast(t('confirmHint')); }
+  else if (res) toast(t('pass'));
+};
+document.getElementById('btnUndo').onclick = () => {
+  if (busy || !game.history.length) return;
+  selected = -1; plan = []; lastInfo = null; prediction = null;
+  const undoOne = () => { const rec = game.history[game.history.length - 1]; if (rec && rec.swap) { game.history.pop(); game.board = rec.before.slice(); game.board[game.history[0].move] = 1; game.hands = [0, 23, 24]; game.toMove = 2; swapUsed = false; } else game.undo(); };
+  undoOne();
+  if (cfg.mode === 'ai') { while (game.history.length && !isHuman(game.toMove)) undoOne(); }
+  if (game.history.length <= 1) swapUsed = game.history.some(h => h.swap);
+  updatePanel(); draw();
+  if (!isHuman(game.toMove)) setTimeout(nextTurn, 200);
+};
+document.getElementById('btnLang').onclick = () => { lang = lang === 'ar' ? 'en' : 'ar'; try { localStorage.setItem('fw-lang', lang); } catch (e) {} applyLang(); draw(); };
+document.getElementById('btnRules').onclick = () => document.getElementById('dlgRules').showModal();
+document.getElementById('linkHow').onclick = e => { e.preventDefault(); document.getElementById('dlgHow').showModal(); };
+document.getElementById('btnNew').onclick = () => document.getElementById('dlgNew').showModal();
+document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  if (seg.id === 'segMode') document.getElementById('aiOpts').hidden = b.dataset.v !== 'ai';
+}));
+const segVal = id => document.querySelector(`#${id} button[aria-pressed="true"]`).dataset.v;
+document.getElementById('btnStart').onclick = () => {
+  document.getElementById('dlgNew').close();
+  newGame({ mode: segVal('segMode'), level: +segVal('segLevel'), human: +segVal('segSide') });
+};
+document.getElementById('btnAgain').onclick = () => { document.getElementById('dlgOver').close(); document.getElementById('dlgNew').showModal(); };
+document.getElementById('optThoughts').onchange = () => { updatePanel(); draw(); };
+window.addEventListener('resize', () => { resize(); draw(); });
+
+// expose for automated testing
+window.__fw = { get game() { return game; }, px: i => { const [x, y] = px(i); return [x / dpr, y / dpr]; }, get busy() { return busy; }, newGame };
+
+drawIcons();
+newGame({ mode: 'ai', level: 2, human: 1 });
+applyLang();
+try { if (!localStorage.getItem('fw-seen-rules')) { localStorage.setItem('fw-seen-rules', '1'); document.getElementById('dlgRules').showModal(); } } catch (e) {}
+})();
+</script>
+</body>
+</html>
