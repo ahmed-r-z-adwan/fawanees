@@ -30,6 +30,16 @@ set off a **chain**. Your score is your lanterns plus the cells only you light.
 
 الشرح الكامل داخل اللعبة: زر **تعلّم** يعلّمك القواعد بست مراحل تلعبها بنفسك.
 
+## العب مع صاحبك · Play a friend
+
+اختر **لعبة جديدة ← مع صاحبك على جهاز تاني**. بتفتح غرفة وبيطلع لك رمزها وزر مشاركة — ابعت الرابط
+على واتساب أو أي مكان. لما صاحبك يفتحه بتشوفه دخل عندك فوراً، وبتبلّش اللعبة. لو طلع أو انقطع نته
+بتعرف على طول. مش لازم ترسل رابط جديد كل دور، ومش لازم رابط جديد للعبة الجاية.
+
+Pick **New game → With a friend on another device**. You get a room with a code and a share button;
+send the link however you like. You see them arrive, you see them leave, and the link keeps working
+for the next game too. One link for the whole thing — not one per move.
+
 ## التثبيت على الجوال · Install on a phone
 
 **أندرويد (Chrome):** افتح [الرابط](https://ahmed-r-z-adwan.github.io/fawanees/) ← زر القائمة **⋮** ←
@@ -45,11 +55,12 @@ offline once installed.*
 
 ## بدون إنترنت أصلاً · Without any internet
 
-`dist/fawanees.html` ملف واحد. نزّله وافتحه بأي متصفح، حتى بدون شبكة. لا يطلب شيئاً من الإنترنت
-سوى الخطوط.
+`dist/fawanees.html` ملف واحد. نزّله وافتحه بأي متصفح، حتى بدون شبكة. ما بيطلب من الإنترنت غير
+الخطوط — واللعب مع صاحبك على جهاز تاني، وهاد وحده بدّه اتصال.
 
 `dist/fawanees.html` is a single self-contained file. Download it, open it in any browser, works
-from disk. Its only external request is Google Fonts.
+from disk. Its only external requests are Google Fonts and, if you choose to play a friend on
+another device, the relay that carries the moves between you.
 
 ---
 

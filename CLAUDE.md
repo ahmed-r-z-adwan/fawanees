@@ -31,6 +31,7 @@ service worker:
 
 | marker | file | what it is |
 |---|---|---|
+| `/*RELAY*/` | `src/relay.js` | the two-device room; runs in Node too, so it can be tested there |
 | `/*ENGINE*/` | `src/engine.js` | runs, and is read back as text to build the worker |
 | `/*WORKER*/` | `src/worker.js` | the worker side of the search |
 | `/*LESSONS*/` | `src/lessons.js` | tutorial positions, no prose, usable from Node |
@@ -42,6 +43,15 @@ service worker:
 
 The four generated files carry `measured: true` and the numbers behind them; the page reads its
 figures out of them rather than having them typed in. Regenerate them, do not edit them.
+
+**Two devices** — `src/relay.js` is a hand-written MQTT 3.1.1 client over a WebSocket, used to
+play a friend on another phone. Sharing a game means sharing a *room*, not a position: both devices
+subscribe to one topic on a public broker, and the broker only ever sees a random room id and a
+list of move numbers. Presence is the reason for the choice — MQTT's last will lets the other
+player find out you are gone even if your phone simply died, and retained messages hand the
+position to whoever arrives second. A room id begins with the index of the broker it was opened on,
+because a link that landed the two players on different brokers would look connected and hear
+nothing. Anything arriving from the other device is replayed through the engine, never trusted.
 
 **Simulations** — `sim/`. `pool.js` spreads games over worker threads; `playWorker.js` plays one.
 `openingMatrix.js` is the opening study, `makeOpeningPolicy.js` turns it into `src/opening.js`,
@@ -68,7 +78,11 @@ blocking), `perf.js` (answer times under CPU throttling), `serve.js`, `makeIcons
 ## Rules for working on this project
 
 - Arabic first, with the English toggle. Keep right-to-left layout correct.
-- The published output stays a single self-contained HTML file. The only external requests allowed are Google Fonts.
+- The published output stays a single self-contained HTML file: no build step at the browser, no
+  libraries, nothing fetched to make the page work. It makes exactly two kinds of outside request,
+  both of which it plays perfectly well without: Google Fonts, and — only once someone chooses to
+  play a friend on another device — a WebSocket to one of the public MQTT brokers in
+  `src/relay.js`. Adding a third needs a reason as good, and a note here.
 - Every number shown to players (win chance, strength, statistics) must come from a measurement you actually ran, and `docs/` must say how it was measured. In practice that means the page reads them out of a generated file, and a test asserts the page and the study agree.
 - Two traps that have already cost real time, both written up in `docs/METHOD.md`: a self-play harness must give both sides the same number of unsearched opening moves, or the measured win rate moves by fifteen points; and alpha-beta only reports an exact value for its best move, so comparing root scores needs `rootScoresExact`.
 - Prefer enumerating a whole population to sampling it where that is affordable. The opening study plays every reply to every opening rather than a random sample of them, which removes sampling error entirely.
