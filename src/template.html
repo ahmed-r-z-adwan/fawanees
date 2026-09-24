@@ -177,7 +177,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
   <div class="field-label" data-i18n="mode">طريقة اللعب</div>
   <div class="seg" id="segMode">
     <button data-v="ai" aria-pressed="true" data-i18n="modeAI">ضد الآلة</button>
-    <button data-v="pvp" aria-pressed="false" data-i18n="modePvP">لاعبان على جهاز واحد</button>
+    <button data-v="pvp" aria-pressed="false" data-i18n="modePvP">مع صاحبك: بالرابط أو على نفس الجهاز</button>
     <button data-v="demo" aria-pressed="false" data-i18n="modeDemo">شاهد الآلة ضد نفسها</button>
   </div>
   <div id="aiOpts">
@@ -317,7 +317,7 @@ const T = {
     title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
     showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
     credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة والنشر: أحمد عدوان.', how: 'كيف صُنعت؟',
-    mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على جهاز واحد', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
+    mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'مع صاحبك: بالرابط أو على نفس الجهاز', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
     lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
     gotIt: 'فهمت', close: 'إغلاق', again: 'العب مرة أخرى',
     gold: 'الذهبي', turq: 'الفيروزي', you: 'أنت', machine: 'الآلة', player: 'اللاعب',
@@ -333,7 +333,7 @@ const T = {
 </ol>
 <p>بتصير أيقونة فانوس على شاشتك، بتفتح بملء الشاشة وبتشتغل بدون إنترنت.</p>`,
     shareBtn: 'شارك الرابط', shareCopied: 'نُسخ الرابط، ابعته لصاحبك',
-    shareText: 'دورك في فوانيس', shareTurn: n => `دور ${n} — ابعت الرابط`,
+    shareText: 'دورك في فوانيس', shareTurn: n => `دور ${n}. ابعتله الرابط ليلعب`,
     linkBad: 'الرابط غير صالح، بلّشنا لعبة جديدة', linkLoaded: 'تابعنا اللعبة من الرابط',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
@@ -376,7 +376,7 @@ const T = {
     title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
     showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
     credit: 'Rules, balancing and AI by Claude (Anthropic). Idea and publishing by Ahmed Adwan.', how: 'How was it made?',
-    mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players, one device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
+    mode: 'Mode', modeAI: 'Against the machine', modePvP: 'With a friend: by link, or on this device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
     lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
     gotIt: 'Got it', close: 'Close', again: 'Play again',
     gold: 'Gold', turq: 'Turquoise', you: 'You', machine: 'Machine', player: 'Player',
@@ -392,7 +392,7 @@ const T = {
 </ol>
 <p>You get a lantern icon on your home screen that opens full screen and works offline.</p>`,
     shareBtn: 'Share the link', shareCopied: 'Link copied — send it to your friend',
-    shareText: 'Your turn in Fawanees', shareTurn: n => `${n} to move — send the link`,
+    shareText: 'Your turn in Fawanees', shareTurn: n => `${n} to move. Send them the link to play`,
     linkBad: 'That link is not valid, so we started a new game', linkLoaded: 'Picked the game up from the link',
     boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
@@ -1183,12 +1183,14 @@ const LinkGame = (function () {
     return g;
   }
 
-  const codeInHash = () => (location.hash.match(/^#g=([A-Za-z0-9\-_]+)$/) || [])[1] || null;
+  const codeInHash = () =>
+    (location.search.match(/[?&]g=([A-Za-z0-9\-_]+)/) || [])[1] ||
+    (location.hash.match(/^#g=([A-Za-z0-9\-_]+)$/) || [])[1] || null;   // '#g=' kept for old links
 
   function writeHash(g) {
     if (!g.history.length) return;              // nothing played yet: no link to write
-    const h = '#g=' + encode(g);
-    if (location.hash !== h) history.replaceState(null, '', location.pathname + location.search + h);
+    const url = location.pathname + '?g=' + encode(g);
+    if (location.pathname + location.search !== url) history.replaceState(null, '', url);
   }
 
   async function share() {
@@ -1218,7 +1220,7 @@ if (shared) {
   const g = LinkGame.replay(shared);
   newGame({ mode: 'pvp' });
   if (g) { game = g; geo = game.geo; resize(); updatePanel(); draw(); setTimeout(() => toast(t('linkLoaded')), 400); }
-  else { history.replaceState(null, '', location.pathname + location.search); setTimeout(() => toast(t('linkBad')), 400); }
+  else { history.replaceState(null, '', location.pathname); setTimeout(() => toast(t('linkBad')), 400); }
 } else {
   newGame({ mode: 'ai', level: 2, human: 1 });
 }
