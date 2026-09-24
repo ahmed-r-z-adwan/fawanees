@@ -9,6 +9,7 @@
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('./serve.js');
+const { noFonts } = require('./nofonts.js');
 
 const INSTRUMENT = `
   window.__longTasks = [];
@@ -24,6 +25,7 @@ async function measure(file, { throttle = 1, moves = 4, level = 2, local = false
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.evaluateOnNewDocument(INSTRUMENT);
     const client = await page.createCDPSession();
     if (throttle > 1) await client.send('Emulation.setCPUThrottlingRate', { rate: throttle });

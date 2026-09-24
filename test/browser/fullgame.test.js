@@ -5,6 +5,7 @@ const assert = require('node:assert');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
@@ -14,13 +15,14 @@ async function playFullGame(t, { level, local, motion = 'reduce' }) {
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.setViewport(PHONE);
     // One variant runs with reduced motion so it is quick; one runs with the default, because that
     // is the path every real player takes and it is where the animation races live.
     if (motion === 'reduce') await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
     const errors = [];
     page.on('pageerror', e => errors.push('pageerror: ' + e));
-    page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+    page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
     page.on('requestfailed', r => errors.push('request failed: ' + r.url()));
 
     await page.goto(server.url + '/fawanees.html', { waitUntil: 'load' });

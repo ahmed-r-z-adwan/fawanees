@@ -6,25 +6,17 @@ const assert = require('node:assert');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const LONG = 45000;
 
-const FONTS = /fonts\.(googleapis|gstatic)\.com/;
-
 async function open(browser, url) {
   const page = await browser.newPage();
+  await noFonts(page);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => {
-    const from = (m.location() || {}).url || '';
-    if (m.type() === 'error' && !FONTS.test(m.text()) && !FONTS.test(from)) errors.push('console: ' + m.text());
-  });
-  // The webfont stylesheet is render-blocking, so on a connection that cannot reach Google the
-  // page's own script does not run until the request gives up -- half a minute of nothing. This
-  // test is about what one device learns about another, so refuse the fonts and get on with it.
-  await page.setRequestInterception(true);
-  page.on('request', r => (FONTS.test(r.url()) ? r.abort() : r.continue()).catch(() => {}));
+  page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction('window.__fw && window.__fw.game');
   await page.evaluate(() => { const d = document.querySelector('dialog[open]'); if (d) d.close(); });

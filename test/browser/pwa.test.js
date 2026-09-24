@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts } = require('../tools/nofonts.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PWA = path.join(ROOT, 'pwa');
@@ -37,6 +38,7 @@ test('the single file stays standalone: no manifest, no service worker, no extra
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     const external = [];
     page.on('request', r => { const u = new URL(r.url()); if (u.origin !== new URL(server.url).origin) external.push(u.hostname); });
     await page.goto(server.url + '/fawanees.html', { waitUntil: 'networkidle0' });
@@ -65,6 +67,7 @@ test('the installable copy plays a move with the network cut off', async (t) => 
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     await page.goto(server.url + '/index.html', { waitUntil: 'load' });
     await page.waitForFunction('window.__fw && window.__fw.game', { timeout: 30000 });

@@ -5,6 +5,7 @@ const assert = require('node:assert');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const FILE_URL = 'file://' + path.join(DIST, 'fawanees.html').replace(/\\/g, '/');
@@ -23,9 +24,10 @@ const INSTRUMENT = `
 
 async function open(browser, url) {
   const page = await browser.newPage();
+  await noFonts(page);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
   await page.evaluateOnNewDocument(INSTRUMENT);
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction('window.__fw && window.__fw.game');

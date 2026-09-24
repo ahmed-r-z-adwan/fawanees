@@ -5,6 +5,7 @@ const assert = require('node:assert');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const fs = require('fs');
@@ -17,10 +18,11 @@ test('puzzle mode: wrong cells are refused with a measured reason, the answer pl
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
-    page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+    page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
     await page.goto(server.url + '/fawanees.html', { waitUntil: 'load' });
     await page.waitForFunction('window.__fw && window.__fw.game');
     await page.evaluate(() => { document.querySelectorAll('dialog[open]').forEach(d => d.close()); });
@@ -70,6 +72,7 @@ test('the hint reveals the answer cell without solving it, and the second press 
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.goto(server.url + '/fawanees.html', { waitUntil: 'load' });
     await page.waitForFunction('window.__fw && window.__fw.game');
     await page.evaluate(() => { document.querySelectorAll('dialog[open]').forEach(d => d.close()); });

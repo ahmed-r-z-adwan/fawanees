@@ -134,7 +134,10 @@
       sock.binaryType = 'arraybuffer';
       // A broker that accepts the socket and then says nothing is the common failure; do not sit
       // on a half-open connection waiting for a CONNACK that is not coming.
-      guard = setTimeout(() => { try { sock.close(); } catch (e) {} }, 9000);
+      // Generous on purpose: one of these brokers has been measured taking nineteen seconds to
+      // answer, and a joiner is pinned to whichever broker the link names. Giving up before it
+      // replies would mean never connecting at all rather than connecting slowly.
+      guard = setTimeout(() => { try { sock.close(); } catch (e) {} }, 22000);
       sock.onopen = () => send(connectPacket('fw-' + seat + '-' + token + '-' + rnd(5),
                                              { topic: mine, payload: '0:' + token }));
       sock.onmessage = (ev) => feed(new Uint8Array(ev.data));
@@ -159,8 +162,11 @@
 
     function drop() {
       clearTimeout(guard); clearInterval(ping);
-      const was = live;
+      const was = live, sock = ws;
       live = false; ws = null; buf = new Uint8Array(0);
+      // Two of the three ways in here -- a refused CONNACK, and bytes that are not MQTT -- leave
+      // the socket open. Close it, or it sits there until the garbage collector notices.
+      if (sock) { try { sock.close(); } catch (e) {} }
       if (closed) return;
       // Our own view of the peer is only as good as our connection to the broker.
       if (peerOnline) { peerOnline = false; say('onPeer', false); }

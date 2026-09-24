@@ -10,6 +10,7 @@ const assert = require('node:assert');
 const path = require('path');
 const { webkit, chromium, devices } = require('playwright');
 const { serve } = require('../tools/serve.js');
+const { noFontsPW, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const PWA = path.join(__dirname, '..', '..', 'pwa');
@@ -24,9 +25,10 @@ async function openGame(target, url) {
   const browser = await target.engine.launch();
   const context = await browser.newContext({ ...target.device });
   const page = await context.newPage();
+  await noFontsPW(page);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction('window.__fw && window.__fw.game', null, { timeout: 30000 });
   await page.evaluate(() => { document.querySelectorAll('dialog[open]').forEach(d => d.close()); });
@@ -125,6 +127,7 @@ test('the installable copy carries what iOS needs for a home-screen icon', async
   try {
     const context = await browser.newContext({ ...devices['iPhone 14'] });
     const page = await context.newPage();
+    await noFontsPW(page);
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await page.goto(server.url + '/index.html', { waitUntil: 'load' });

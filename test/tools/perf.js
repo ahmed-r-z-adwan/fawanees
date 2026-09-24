@@ -13,6 +13,7 @@
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('./serve.js');
+const { noFonts } = require('./nofonts.js');
 
 const LEVEL_NAMES = ['Novice', 'Skilled', 'Master', 'Oracle'];
 
@@ -22,6 +23,7 @@ async function perf(file, { throttle = 4, moves = 8, levels = [0, 1, 2, 3], loca
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));

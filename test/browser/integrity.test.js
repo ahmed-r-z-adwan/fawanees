@@ -14,6 +14,7 @@ const assert = require('node:assert');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const PWA = path.join(__dirname, '..', '..', 'pwa');
@@ -24,6 +25,7 @@ for (const [label, dir, file] of [['the single file', DIST, 'fawanees.html'], ['
     const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
     try {
       const page = await browser.newPage();
+      await noFonts(page);
       const errors = [];
       page.on('pageerror', e => errors.push(String(e)));
       await page.goto(`${server.url}/${file}`, { waitUntil: 'load' });
@@ -76,11 +78,12 @@ test('the board refuses a move while the machine\'s own move is still animating'
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
+    await noFonts(page);
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     // Deliberately NOT reduced motion: the animation is the whole point of this test.
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
-    page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+    page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
     await page.goto(server.url + '/fawanees.html', { waitUntil: 'load' });
     await page.waitForFunction('window.__fw && window.__fw.game');
     await page.evaluate(() => { document.querySelectorAll('dialog[open]').forEach(d => d.close()); });

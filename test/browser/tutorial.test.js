@@ -5,16 +5,18 @@ const assert = require('node:assert');
 const path = require('path');
 const puppeteer = require('puppeteer');
 const { serve } = require('../tools/serve.js');
+const { noFonts, isPageError } = require('../tools/nofonts.js');
 const LS = require('../../src/lessons.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 
 async function openPage(browser, url, viewport) {
   const page = await browser.newPage();
+  await noFonts(page);
   if (viewport) await page.setViewport(viewport);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForFunction('window.__fw && window.__fw.game');
   await page.evaluate(() => { document.querySelectorAll('dialog[open]').forEach(d => d.close()); });
