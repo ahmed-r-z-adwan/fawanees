@@ -22,7 +22,14 @@ SOURCES = (
 
 PWA_HEAD = (
     '<link rel="manifest" href="manifest.webmanifest">\n'
-    '<link rel="apple-touch-icon" href="icons/icon-192.png">'
+    # iOS ignores the web manifest when a page is added to the home screen; it reads these instead.
+    # Its icon must be 180 and opaque, because iOS rounds the corners itself and renders any
+    # transparency as black.
+    '<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">\n'
+    '<meta name="apple-mobile-web-app-capable" content="yes">\n'
+    '<meta name="mobile-web-app-capable" content="yes">\n'
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
+    '<meta name="apple-mobile-web-app-title" content="فوانيس">'
 )
 
 PWA_SCRIPT = (

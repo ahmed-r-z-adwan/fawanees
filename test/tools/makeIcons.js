@@ -53,7 +53,10 @@ function packIco(pngs) {
       return buf;
     };
 
-    for (const [name, size, pad] of [['icon-192.png', 192, 0], ['icon-512.png', 512, 0], ['maskable-512.png', 512, 0.12]]) {
+    for (const [name, size, pad] of [['icon-192.png', 192, 0], ['icon-512.png', 512, 0], ['maskable-512.png', 512, 0.12],
+                                     // iOS rounds the corners itself and paints transparency
+                                     // black, so its icon is opaque and square.
+                                     ['apple-touch-icon.png', 180, 0]]) {
       const buf = await shot(size, pad);
       fs.writeFileSync(path.join(outDir, name), buf);
       console.log(`${name}  ${size}x${size}  ${(buf.length / 1024).toFixed(1)} KB`);

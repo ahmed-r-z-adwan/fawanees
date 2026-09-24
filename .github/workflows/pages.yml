@@ -1,0 +1,53 @@
+# Publishes the installable copy to GitHub Pages.
+#
+# The build is re-run here rather than trusting the committed pwa/, so what goes live is always
+# what src/ currently says. If a generated file (opening.js, calibration.js, puzzles.js) were ever
+# committed out of step with its study, this would ship the committed one -- the tests catch that,
+# not this workflow.
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; let a running one finish rather than cancelling it half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Build the page and the installable copy
+        run: python build.py
+      - name: Check the build is what is committed
+        run: |
+          if ! git diff --quiet -- dist pwa; then
+            echo "::warning::pwa/ or dist/ in the repository is out of date with src/; publishing the freshly built copy"
+            git --no-pager diff --stat -- dist pwa
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pwa
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
