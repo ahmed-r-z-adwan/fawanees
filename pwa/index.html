@@ -76,6 +76,8 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
 .install .btn { flex: 0 0 auto; }
 .install .x { background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1;
   cursor: pointer; padding: 2px 6px; }
+.linkbar { display: flex; align-items: center; gap: 10px; }
+.linkbar .linkturn { flex: 1 1 auto; font-weight: 700; }
 footer { margin-top: 18px; color: #7e77a3; font-size: 13px; text-align: center; }
 footer a { color: var(--muted); }
 dialog { background: #1e1938; color: var(--text); border: 1px solid var(--line); border-radius: 18px; padding: 20px; max-width: min(560px, 92vw); max-height: 86vh; overflow: auto; }
@@ -154,6 +156,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         <button class="btn" id="btnPass" data-i18n="pass">تمرير</button>
         <button class="btn" id="btnUndo" data-i18n="undo">تراجع</button>
         <button class="btn" id="btnHint" data-i18n="hint">تلميح</button>
+      </div>
+      <div class="card linkbar" id="linkBar" hidden>
+        <div class="linkturn" id="linkTurn"></div>
+        <button class="btn primary" id="btnShare"></button>
       </div>
       <div class="toggles card">
         <label><input type="checkbox" id="optThoughts" checked> <span data-i18n="showThoughts">أظهر خطة الآلة على اللوح</span></label>
@@ -1223,6 +1229,9 @@ const T = {
 <li>اضغط <strong>إضافة</strong>.</li>
 </ol>
 <p>بتصير أيقونة فانوس على شاشتك، بتفتح بملء الشاشة وبتشتغل بدون إنترنت.</p>`,
+    shareBtn: 'شارك الرابط', shareCopied: 'نُسخ الرابط، ابعته لصاحبك',
+    shareText: 'دورك في فوانيس', shareTurn: n => `دور ${n} — ابعت الرابط`,
+    linkBad: 'الرابط غير صالح، بلّشنا لعبة جديدة', linkLoaded: 'تابعنا اللعبة من الرابط',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
@@ -1279,6 +1288,9 @@ const T = {
 <li>Tap <strong>Add</strong>.</li>
 </ol>
 <p>You get a lantern icon on your home screen that opens full screen and works offline.</p>`,
+    shareBtn: 'Share the link', shareCopied: 'Link copied — send it to your friend',
+    shareText: 'Your turn in Fawanees', shareTurn: n => `${n} to move — send the link`,
+    linkBad: 'That link is not valid, so we started a new game', linkLoaded: 'Picked the game up from the link',
     boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `The win-chance meter is fitted on ${g} self-play games. Log loss went from ${before} to ${after}.`,
@@ -1714,6 +1726,17 @@ function updatePanel(extra) {
   }
   if (predStats.total > 0 && cfg.mode === 'ai') add(t('predScore', predStats.hit, predStats.total), 'pred');
   if (extra) add(extra, 'pred');
+  const bar = document.getElementById('linkBar');
+  if (LinkGame.active()) {
+    LinkGame.writeHash(game);
+    bar.hidden = false;
+    document.getElementById('linkTurn').textContent = game.over
+      ? t('over') : t('shareTurn', t(game.toMove === 1 ? 'gold' : 'turq'));
+    document.getElementById('btnShare').textContent = t('shareBtn');
+  } else {
+    bar.hidden = true;
+  }
+
   const human = isHuman(game.toMove) && !game.over && !busy;
   document.getElementById('btnPass').disabled = !human;
   document.getElementById('btnHint').disabled = !human;
@@ -1924,6 +1947,7 @@ document.getElementById('btnUndo').onclick = () => {
   updatePanel(); draw();
   if (!isHuman(game.toMove)) setTimeout(nextTurn, 200);
 };
+document.getElementById('btnShare').onclick = () => LinkGame.share();
 document.getElementById('btnLang').onclick = () => { lang = lang === 'ar' ? 'en' : 'ar'; try { localStorage.setItem('fw-lang', lang); } catch (e) {} applyLang(); draw(); };
 document.getElementById('btnRules').onclick = () => document.getElementById('dlgRules').showModal();
 document.getElementById('btnLearn').onclick = () => Tutorial.open(0);
@@ -2013,6 +2037,72 @@ const Install = (function () {
 
   return { refresh, get shown() { return bar.classList.contains('show'); },
            get canPromptNow() { return !!prompt; } };
+})();
+
+// ---------------- play a friend by link ----------------
+// The whole game is in the URL: one byte a move, 0-90 a cell, 91 a pass, 92 taking the opening
+// lantern, base64url in the hash. Opening a link replays it through the engine rather than trusting
+// it -- anything the rules refuse makes the link invalid and we start fresh.
+const LinkGame = (function () {
+  const PASS = 91, SWAP = 92, MAX = 200;
+  const enc = (bytes) => {
+    let s = '';
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+  const dec = (str) => {
+    const t2 = str.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(t2 + '==='.slice((t2.length + 3) % 4));
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  };
+
+  function encode(g) {
+    const bytes = new Uint8Array(g.history.length);
+    g.history.forEach((rec, i) => { bytes[i] = rec.swap ? SWAP : rec.move < 0 ? PASS : rec.move; });
+    return enc(bytes);
+  }
+
+  // Returns a Game, or null if any byte is not a legal move in the position it arrives at.
+  function replay(codeStr) {
+    let bytes;
+    try { bytes = dec(codeStr); } catch (e) { return null; }
+    if (!bytes.length || bytes.length > MAX) return null;
+    const g = new F.Game(RADIUS, RULES);
+    for (const b of bytes) {
+      if (g.over) return null;
+      if (b === SWAP) { if (!g.swapOpening()) return null; continue; }
+      if (b === PASS) { g.play(-1); continue; }
+      if (b >= g.geo.N || g.board[b] !== 0) return null;
+      if (!g.play(b)) return null;                       // no lantern left in hand
+    }
+    return g;
+  }
+
+  const codeInHash = () => (location.hash.match(/^#g=([A-Za-z0-9\-_]+)$/) || [])[1] || null;
+
+  function writeHash(g) {
+    if (!g.history.length) return;              // nothing played yet: no link to write
+    const h = '#g=' + encode(g);
+    if (location.hash !== h) history.replaceState(null, '', location.pathname + location.search + h);
+  }
+
+  async function share() {
+    const url = location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: t('title'), text: t('shareText'), url }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(url); toast(t('shareCopied')); }
+    catch (e) { window.prompt(t('shareBtn'), url); }
+  }
+
+  return {
+    encode, replay, codeInHash, writeHash, share,
+    // shown for a game two people share; the machine's games have nothing to pass back and forth
+    active: () => cfg.mode === 'pvp',
+  };
 })();
 
 // Interactive tutorial. Inlined inside the page's main closure, so it shares the board painters,
@@ -2593,7 +2683,15 @@ const Puzzles = (function () {
 
 
 drawIcons();
-newGame({ mode: 'ai', level: 2, human: 1 });
+const shared = LinkGame.codeInHash();
+if (shared) {
+  const g = LinkGame.replay(shared);
+  newGame({ mode: 'pvp' });
+  if (g) { game = g; geo = game.geo; resize(); updatePanel(); draw(); setTimeout(() => toast(t('linkLoaded')), 400); }
+  else { history.replaceState(null, '', location.pathname + location.search); setTimeout(() => toast(t('linkBad')), 400); }
+} else {
+  newGame({ mode: 'ai', level: 2, human: 1 });
+}
 applyLang();
 try { if (!localStorage.getItem('fw-seen-rules')) { localStorage.setItem('fw-seen-rules', '1'); Tutorial.open(0); } } catch (e) {}
 })();
