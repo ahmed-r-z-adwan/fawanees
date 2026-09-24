@@ -206,6 +206,17 @@ test('a position that arrives from behind cannot rewind the game', { timeout: LO
     g.publish('!!!not base64!!!');
     await settle(1500);
     assert.strictEqual(await a.evaluate(() => window.__fw.game.history.length), before);
+
+    // Nothing the page published during all of that went backwards. `seen` holds only what the
+    // page put into the room -- a client is not sent its own echo -- and one byte is one move, so
+    // the length of a code is the length of the game. A repaint landing between receiving a move
+    // and playing it once published the position from before it, which reads at the other end as
+    // the mover undoing their own move.
+    const lengths = g.seen.filter(c => c).map(c => Math.floor(c.length * 3 / 4));
+    for (let i = 1; i < lengths.length; i++) {
+      assert.ok(lengths[i] >= lengths[i - 1],
+        `the page published a shorter game than it had already published: ${lengths.join(' -> ')}`);
+    }
     assert.deepStrictEqual(a.errors, []);
   } catch (e) {
     if (isBroker(e)) { t.skip('no public broker reachable from here: ' + e.message); return; }

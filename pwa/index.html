@@ -224,9 +224,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     <button data-v="demo" aria-pressed="false" data-i18n="modeDemo">شاهد الآلة ضد نفسها</button>
   </div>
   <div id="onlineOpts" hidden>
-    <div class="field-label" data-i18n="joinLabel">معك رمز غرفة من صاحبك؟</div>
+    <div class="field-label" id="joinLabel" data-i18n="joinLabel">معك رمز غرفة من صاحبك؟</div>
     <div class="joinrow">
-      <input id="joinCode" maxlength="10" inputmode="latin" autocomplete="off" spellcheck="false" aria-label="room code">
+      <input id="joinCode" maxlength="10" autocomplete="off" spellcheck="false"
+             autocapitalize="characters" aria-labelledby="joinLabel">
       <button class="btn" id="btnJoinCode" data-i18n="joinGo">ادخل</button>
     </div>
   </div>
@@ -1542,10 +1543,9 @@ const T = {
     shareBtn: 'شارك الرابط', shareCopied: 'نُسخ الرابط، ابعته لصاحبك',
     shareText: 'دورك في فوانيس', shareTurn: n => `دور ${n}. ابعتله الرابط ليلعب`,
     linkBad: 'الرابط غير صالح، بلّشنا لعبة جديدة', linkLoaded: 'تابعنا اللعبة من الرابط',
-    roomPrep: 'عم نجهّز الغرفة…', roomConnecting: 'عم نوصل بالغرفة…', roomLost: 'انقطع الاتصال، عم نرجّع…',
-    roomWaiting: 'عم نستنى صاحبك يدخل…', roomHere: 'صاحبك موجود', roomGone: 'صاحبك طلع من الغرفة',
-    roomNeedTwo: 'اللعب بيبلّش لما صاحبك يدخل', roomYourTurn: 'دورك أنت', roomTheirTurn: 'دور صاحبك',
-    roomShare: 'ابعت الرابط لصاحبك', roomCodeLabel: 'رمز الغرفة', leaveRoom: 'اطلع',
+    roomPrep: 'عم نجهّز الغرفة…', roomConnecting: 'عم نوصل بالغرفة…', roomLost: 'انقطع الاتصال، عم نحاول نرجع…',
+    roomWaiting: 'عم نستنى صاحبك يدخل…', roomGone: 'صاحبك طلع من الغرفة',
+    roomShare: 'ابعت الرابط لصاحبك', leaveRoom: 'اطلع',
     roomPeerJoined: 'صاحبك دخل، يلا العبوا', roomPeerLeft: 'صاحبك طلع من الغرفة',
     roomTaken: 'في حدا تاني فتح نفس الرابط', roomLeft: 'طلعت من الغرفة', friend: 'صاحبك',
     roomNoConnect: 'ما قدرنا نوصل. جرّب الإنترنت وافتح غرفة جديدة',
@@ -1553,7 +1553,7 @@ const T = {
     dotAway: 'صاحبك مش موجود', dotNotYet: 'لسا ما دخل',
     roomInvite: 'تعال نلعب فوانيس', joinLabel: 'معك رمز غرفة من صاحبك؟', joinGo: 'ادخل',
     joinBad: 'الرمز مش مضبوط', roomNoNet: 'ما في إنترنت. وصّل وجرّب كمان مرة',
-    rematch: 'لعبة جديدة',
+    rematch: 'كمان مرة',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
@@ -1615,9 +1615,8 @@ const T = {
     shareText: 'Your turn in Fawanees', shareTurn: n => `${n} to move. Send them the link to play`,
     linkBad: 'That link is not valid, so we started a new game', linkLoaded: 'Picked the game up from the link',
     roomPrep: 'Setting the room up…', roomConnecting: 'Connecting to the room…', roomLost: 'Connection lost, reconnecting…',
-    roomWaiting: 'Waiting for your friend to join…', roomHere: 'Your friend is here', roomGone: 'Your friend left the room',
-    roomNeedTwo: 'The game starts when your friend joins', roomYourTurn: 'Your turn', roomTheirTurn: "Your friend's turn",
-    roomShare: 'Send the link to your friend', roomCodeLabel: 'Room code', leaveRoom: 'Leave',
+    roomWaiting: 'Waiting for your friend to join…', roomGone: 'Your friend left the room',
+    roomShare: 'Send the link to your friend', leaveRoom: 'Leave',
     roomPeerJoined: 'Your friend joined — play!', roomPeerLeft: 'Your friend left the room',
     roomTaken: 'Someone else opened the same link', roomLeft: 'You left the room', friend: 'Your friend',
     roomNoConnect: 'Could not connect. Check the network and open a new room',
@@ -2054,7 +2053,7 @@ function updatePanel(extra) {
   let status;
   if (game.over) status = t('over');
   else if (Online.active() && Online.status !== 'online')
-    status = t(Online.status === 'prep' ? 'roomPrep' : 'roomLost');
+    status = t(Online.status === 'prep' ? 'roomPrep' : Online.everOnline ? 'roomLost' : 'roomConnecting');
   else if (Online.active() && !Online.peerHere) status = t(Online.everHere ? 'roomGone' : 'roomWaiting');
   else if (busy && !isHuman(game.toMove)) status = t('thinking');
   else if (isHuman(game.toMove)) status = cfg.mode === 'pvp' ? t('turnOf', t(game.toMove === 1 ? 'gold' : 'turq')) : t('yourTurn');
@@ -2125,15 +2124,28 @@ function playMove(j, after) {
   // If a newer animation or a new game has started, this loop is stale: stop, and do not touch
   // `anim` or call `after`, or two chains end up driving the same game.
   const token = ++animToken, gen = generation;
+  let ended = false;
+  const finish = () => {
+    if (ended || token !== animToken || gen !== generation) return;
+    ended = true;
+    anim = null; draw(); updatePanel();
+    after && after(rec);
+  };
   const step = () => {
-    if (token !== animToken || gen !== generation) return;
+    if (ended || token !== animToken || gen !== generation) return;
     const now = performance.now();
     rec.waves.forEach((w, k) => { if (now >= t0 + 300 + k * waveDelay) w.forEach(i => { anim.board[i] = p; }); });
     draw();
     if (now - t0 < total) requestAnimationFrame(step);
-    else { anim = null; draw(); updatePanel(); after && after(rec); }
+    else finish();
   };
   requestAnimationFrame(step);
+  // A hidden tab is given no animation frames at all, so this loop would never run and the move
+  // would never be finished -- the turn would simply never come back. That is not hypothetical
+  // now that the other player's move is animated here too: they switch to a chat app to send the
+  // link, the move arrives, and the game stops. Timers still run in the background, so one is the
+  // backstop; whichever gets there first wins and the other does nothing.
+  setTimeout(finish, total + 500);
 }
 
 function nextTurn() {
@@ -2510,6 +2522,9 @@ const Online = (function () {
   const HOST_WAIT = 26000;                 // nothing has answered by now, so nothing is going to
   let link = null, room = null, seat = null, probes = [];
   let status = 'off', peer = false, everPeer = false, hostTimer = null, swapped = false;
+  // The relay says "connecting" both for the first attempt and for every reconnection after a
+  // drop. Only the second of those is a connection that was lost.
+  let everOnline = false;
 
   // True from the moment a room starts being opened, not from when it succeeds: the card has to
   // show "setting up" and the board has to stay locked in between.
@@ -2536,7 +2551,7 @@ const Online = (function () {
     dropProbes();
     if (link) link.leave();
     link = null; room = null; seat = null;
-    status = 'off'; peer = false; everPeer = false;
+    status = 'off'; peer = false; everPeer = false; everOnline = false;
   }
 
   function take(r, s) {
@@ -2551,7 +2566,7 @@ const Online = (function () {
   function handlers(r, s, mine) {
     return {
       room: r, seat: s,
-      onStatus: (st) => { if (mine()) { status = st; repaint(); } },
+      onStatus: (st) => { if (!mine()) return; status = st; if (st === 'online') everOnline = true; repaint(); },
       onPeer: (on) => {
         if (!mine()) return;
         peer = on;
@@ -2597,7 +2612,7 @@ const Online = (function () {
       self = RELAY.join(Object.assign(handlers(r, 'a', () => !!self && link === self), {
         onStatus: (st) => {
           if (!link && st === 'online') { link = self; take(r, 'a'); dropProbes(self); }
-          if (link && link === self) { status = st; repaint(); }
+          if (link && link === self) { status = st; if (st === 'online') everOnline = true; repaint(); }
         },
       }));
       probes.push(self);
@@ -2623,6 +2638,11 @@ const Online = (function () {
   const tidy = (raw) => String(raw || '').toLowerCase().replace(/[^a-z0-9]/g, '')
     .replace(/^z/, '2').replace(/^o/, '0').replace(/^[il]/, '1');
 
+  // What a move looks like as one byte, so two histories can be compared without replaying them.
+  const asByte = (rec) => rec.swap ? 92 : rec.move < 0 ? 91 : rec.move;
+  const carriesOn = (mine, theirs) =>
+    mine.history.every((r, i) => asByte(r) === asByte(theirs.history[i]));
+
   // Whatever arrives from the other device is replayed through the engine, never trusted.
   function adopt(code) {
     const g = code ? LinkGame.replay(code) : new F.Game(RADIUS, RULES);
@@ -2630,6 +2650,20 @@ const Online = (function () {
     // Only a new game makes a game shorter. Anything else that arrives behind us is the broker
     // handing back what it kept while we were offline -- and we moved since. Answer with ours.
     if (code && game && g.history.length < game.history.length) return sync(game);
+
+    // One move on top of the position we already have is the ordinary case, and it should look
+    // like one: the lantern lands and the chain runs, so you can see where they played. Swapping
+    // the whole board over would teleport it, and on a crowded board you would have to hunt for
+    // what changed.
+    if (game && !game.over && g.history.length === game.history.length + 1 && carriesOn(game, g)) {
+      const rec = g.history[g.history.length - 1];
+      if (rec.swap) { doSwap(); return setTimeout(nextTurn, 300); }
+      // No repaint before the move is played: a repaint publishes, and what it would publish is
+      // the position from before their move -- which reads at the other end as us undoing it.
+      busy = true;
+      return playMove(rec.move, () => { busy = false; setTimeout(nextTurn, 120); });
+    }
+
     abortThinking();
     const over = document.getElementById('dlgOver');
     if (over.open) over.close();           // they started another game; stop showing the last one
@@ -2641,10 +2675,17 @@ const Online = (function () {
     nextTurn();
   }
 
+  // A move list is one byte a move, so the number of moves in a code is its length in bytes.
+  const movesIn = (c) => Math.floor((c ? c.length : 0) * 3 / 4);
+
   function sync(g) {
     if (!link) return;
     const code = g.history.length ? LinkGame.encode(g) : '';
-    if (code !== link.state) link.publish(code);
+    if (code === link.state) return;                       // our own echo, or nothing new
+    // Never publish a position behind the one the room already holds: that is how a stray repaint
+    // undoes somebody's move. A new game is the one thing allowed to be shorter, and it is empty.
+    if (code && g.history.length < movesIn(link.state)) return;
+    link.publish(code);
   }
 
   function repaint() { if (game) { updatePanel(); draw(); } }
@@ -2702,6 +2743,7 @@ const Online = (function () {
     poke() { if (link) link.poke(); },     // back from the background: reconnect now, not in a minute
     get peerHere() { return peer; },
     get everHere() { return everPeer; },
+    get everOnline() { return everOnline; },
     get status() { return status; },
     get room() { return room; },
     get seat() { return seat; },
