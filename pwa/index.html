@@ -116,6 +116,12 @@ dialog li { margin: 6px 0; }
 .seg button { border: 1px solid #4b4480; background: transparent; border-radius: 999px; padding: 7px 12px; cursor: pointer; min-height: 38px; }
 .seg button[aria-pressed="true"] { background: #3a3170; border-color: var(--amber); }
 .field-label { color: var(--muted); font-size: 14px; }
+.joinrow { display: flex; gap: 8px; margin: 6px 0 14px; }
+.joinrow input { flex: 1 1 auto; min-width: 0; background: #1a1536; color: var(--text);
+  border: 1px solid #4b4480; border-radius: 10px; padding: 9px 12px; font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .14em;
+  text-transform: uppercase; direction: ltr; text-align: center; }
+.joinrow .btn { flex: 0 0 auto; }
 .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .stats { color: var(--muted); font-size: 14px; }
 dialog.learn { max-width: min(880px, 94vw); width: min(880px, 94vw); }
@@ -216,6 +222,13 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     <button data-v="online" aria-pressed="false" data-i18n="modeOnline">مع صاحبك على جهاز تاني</button>
     <button data-v="pvp" aria-pressed="false" data-i18n="modePvP">لاعبان على نفس الجهاز</button>
     <button data-v="demo" aria-pressed="false" data-i18n="modeDemo">شاهد الآلة ضد نفسها</button>
+  </div>
+  <div id="onlineOpts" hidden>
+    <div class="field-label" data-i18n="joinLabel">معك رمز غرفة من صاحبك؟</div>
+    <div class="joinrow">
+      <input id="joinCode" maxlength="10" inputmode="latin" autocomplete="off" spellcheck="false" aria-label="room code">
+      <button class="btn" id="btnJoinCode" data-i18n="joinGo">ادخل</button>
+    </div>
   </div>
   <div id="aiOpts">
     <div class="field-label" data-i18n="level">مستوى الآلة</div>
@@ -446,7 +459,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       sock.binaryType = 'arraybuffer';
       // A broker that accepts the socket and then says nothing is the common failure; do not sit
       // on a half-open connection waiting for a CONNACK that is not coming.
-      guard = setTimeout(() => { try { sock.close(); } catch (e) {} }, 9000);
+      // Generous on purpose: one of these brokers has been measured taking nineteen seconds to
+      // answer, and a joiner is pinned to whichever broker the link names. Giving up before it
+      // replies would mean never connecting at all rather than connecting slowly.
+      guard = setTimeout(() => { try { sock.close(); } catch (e) {} }, 22000);
       sock.onopen = () => send(connectPacket('fw-' + seat + '-' + token + '-' + rnd(5),
                                              { topic: mine, payload: '0:' + token }));
       sock.onmessage = (ev) => feed(new Uint8Array(ev.data));
@@ -471,8 +487,11 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
 
     function drop() {
       clearTimeout(guard); clearInterval(ping);
-      const was = live;
+      const was = live, sock = ws;
       live = false; ws = null; buf = new Uint8Array(0);
+      // Two of the three ways in here -- a refused CONNACK, and bytes that are not MQTT -- leave
+      // the socket open. Close it, or it sits there until the garbage collector notices.
+      if (sock) { try { sock.close(); } catch (e) {} }
       if (closed) return;
       // Our own view of the peer is only as good as our connection to the broker.
       if (peerOnline) { peerOnline = false; say('onPeer', false); }
@@ -1532,6 +1551,8 @@ const T = {
     roomNoConnect: 'ما قدرنا نوصل. جرّب الإنترنت وافتح غرفة جديدة',
     dotPrep: 'عم نجهّز…', dotConnecting: 'عم نوصل…', dotHere: 'صاحبك موجود',
     dotAway: 'صاحبك مش موجود', dotNotYet: 'لسا ما دخل',
+    roomInvite: 'تعال نلعب فوانيس', joinLabel: 'معك رمز غرفة من صاحبك؟', joinGo: 'ادخل',
+    joinBad: 'الرمز مش مضبوط', roomNoNet: 'ما في إنترنت. وصّل وجرّب كمان مرة',
     rematch: 'لعبة جديدة',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
@@ -1602,6 +1623,8 @@ const T = {
     roomNoConnect: 'Could not connect. Check the network and open a new room',
     dotPrep: 'Setting up…', dotConnecting: 'Connecting…', dotHere: 'Your friend is here',
     dotAway: 'Your friend is away', dotNotYet: 'Not joined yet',
+    roomInvite: 'Come and play Fawanees', joinLabel: 'Got a room code from your friend?', joinGo: 'Join',
+    joinBad: 'That code is not right', roomNoNet: 'No internet. Connect and try again',
     rematch: 'Play again',
     boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
@@ -2030,6 +2053,8 @@ function updatePanel(extra) {
   document.querySelector('.meter').classList.toggle('unknown', p1 === null);
   let status;
   if (game.over) status = t('over');
+  else if (Online.active() && Online.status !== 'online')
+    status = t(Online.status === 'prep' ? 'roomPrep' : 'roomLost');
   else if (Online.active() && !Online.peerHere) status = t(Online.everHere ? 'roomGone' : 'roomWaiting');
   else if (busy && !isHuman(game.toMove)) status = t('thinking');
   else if (isHuman(game.toMove)) status = cfg.mode === 'pvp' ? t('turnOf', t(game.toMove === 1 ? 'gold' : 'turq')) : t('yourTurn');
@@ -2286,6 +2311,18 @@ document.getElementById('btnUndo').onclick = () => {
 document.getElementById('btnShare').onclick = () => (Online.active() ? Online : LinkGame).share();
 document.getElementById('btnLeave').onclick = () => { Online.leave(); newGame({ mode: 'ai', level: 2, human: 1 }); };
 document.getElementById('btnRematch').onclick = () => newGame({ mode: 'online' });   // same room, new game
+document.getElementById('btnJoinCode').onclick = () => {
+  const box = document.getElementById('joinCode');
+  if (!Online.valid(box.value)) { toast(t('joinBad')); box.focus(); return; }
+  const room = Online.tidy(box.value);
+  box.value = '';
+  document.getElementById('dlgNew').close();
+  newGame({ mode: 'online' });
+  Online.join(room);
+};
+document.getElementById('joinCode').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnJoinCode').click(); }
+});
 // Leaving is the common case -- closing the tab, locking the phone -- and the point of the room is
 // that the other player finds out. Say so on the way out rather than making them wait for the will.
 addEventListener('pagehide', () => Online.bye());
@@ -2307,13 +2344,17 @@ document.getElementById('btnNew').onclick = () => {
     b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
   press('segMode', cfg.mode); press('segLevel', cfg.level); press('segSide', cfg.human);
   document.getElementById('aiOpts').hidden = cfg.mode !== 'ai';
+  document.getElementById('onlineOpts').hidden = cfg.mode !== 'online';
   document.getElementById('dlgNew').showModal();
 };
 document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
 document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
-  if (seg.id === 'segMode') document.getElementById('aiOpts').hidden = b.dataset.v !== 'ai';
+  if (seg.id === 'segMode') {
+    document.getElementById('aiOpts').hidden = b.dataset.v !== 'ai';
+    document.getElementById('onlineOpts').hidden = b.dataset.v !== 'online';
+  }
 }));
 const segVal = id => document.querySelector(`#${id} button[aria-pressed="true"]`).dataset.v;
 document.getElementById('btnStart').onclick = () => {
@@ -2466,11 +2507,13 @@ const LinkGame = (function () {
 // anywhere: the room is a random name, and the only thing published into it is the move list.
 const Online = (function () {
   const RELAY = window.FawaneesRelay;
-  const HOST_WAIT = 11000;                 // a broker that has not answered by now is not going to
-  let link = null, room = null, seat = null;
-  let status = 'off', peer = false, everPeer = false, hostTry = 0, hostTimer = null, swapped = false;
+  const HOST_WAIT = 26000;                 // nothing has answered by now, so nothing is going to
+  let link = null, room = null, seat = null, probes = [];
+  let status = 'off', peer = false, everPeer = false, hostTimer = null, swapped = false;
 
-  const active = () => !!link;
+  // True from the moment a room starts being opened, not from when it succeeds: the card has to
+  // show "setting up" and the board has to stay locked in between.
+  const active = () => !!link || probes.length > 0;
   const colour = () => (seat === 'a' ? 1 : 2);
   // Not origin + pathname: a page opened straight from disk has no origin, and the single-file
   // copy is a real way people run this.
@@ -2483,29 +2526,42 @@ const Online = (function () {
   const rememberSeat = (r, s) => { try { sessionStorage.setItem(seatKey(r), s); } catch (e) {} };
   const seatFor = (r) => { try { return sessionStorage.getItem(seatKey(r)); } catch (e) { return null; } };
 
+  function dropProbes(keep) {
+    for (const p of probes) if (p !== keep) p.leave();
+    probes = [];
+  }
+
   function stop() {
     clearTimeout(hostTimer); hostTimer = null;
+    dropProbes();
     if (link) link.leave();
     link = null; room = null; seat = null;
     status = 'off'; peer = false; everPeer = false;
   }
 
-  function connect(r, s) {
-    stop();                                // clears room/seat, so callers pass them in
-    room = r; seat = s; status = 'connecting';
+  function take(r, s) {
+    room = r; seat = s;
     rememberSeat(r, s);
     history.replaceState(null, '', location.pathname + '?r=' + r);
-    link = RELAY.join({
+  }
+
+  // One set of handlers for every connection we open. `mine` answers "is this the one we kept?",
+  // because when a host races the brokers the losers are still alive for a moment and must not be
+  // allowed to drive the board.
+  function handlers(r, s, mine) {
+    return {
       room: r, seat: s,
-      onStatus: (st) => { status = st; repaint(); },
+      onStatus: (st) => { if (mine()) { status = st; repaint(); } },
       onPeer: (on) => {
+        if (!mine()) return;
         peer = on;
         if (on) everPeer = true;
         toast(t(on ? 'roomPeerJoined' : 'roomPeerLeft'));
         if (on && game) nextTurn(); else repaint();     // their arrival is what starts the turn
       },
-      onState: adopt,
+      onState: (c) => { if (mine()) adopt(c); },
       onSeatTaken: () => {
+        if (!mine()) return;
         // Someone else is in this chair. If the other one is empty this is almost always the host
         // coming back through their own link after closing the tab, so go and sit there instead
         // of two people sharing a colour. Once only, or a pair of clients could trade places
@@ -2513,23 +2569,45 @@ const Online = (function () {
         if (!swapped && !peer) { swapped = true; return connect(room, seat === 'a' ? 'b' : 'a'); }
         toast(t('roomTaken'));
       },
-    });
+    };
   }
 
-  // The host picks the broker, and the room name records which one, so the link always lands both
-  // players in the same place. If the first broker will not answer we start over on the next --
-  // safe only because the link has not been shared yet, which is why the share button waits.
-  function host() {
-    hostTry = 0; swapped = false;
-    tryHost();
+  function connect(r, s) {
+    stop();                                // clears room/seat, so callers pass them in
+    take(r, s);
+    status = 'connecting';
+    let self = null;
+    self = RELAY.join(handlers(r, s, () => !!self && link === self));
+    link = self;
   }
-  function tryHost() {
-    connect(RELAY.newRoomId(hostTry % RELAY.BROKERS.length), 'a');
+
+  // The room name records the broker it was opened on, so a link always lands both players in the
+  // same place. Rather than trying the brokers in turn -- one of them can take twenty seconds to
+  // answer, and that is twenty seconds before a link can be sent to anybody -- open a room on each
+  // and keep whichever answers first. The rest are shut before they have said anything.
+  function host() {
+    // Otherwise the phone being in a lift looks exactly like three slow brokers.
+    if (navigator.onLine === false) { toast(t('roomNoNet')); return; }
+    stop();
+    swapped = false;
     status = 'prep';
+    RELAY.BROKERS.forEach((_, i) => {
+      const r = RELAY.newRoomId(i);
+      let self = null;
+      self = RELAY.join(Object.assign(handlers(r, 'a', () => !!self && link === self), {
+        onStatus: (st) => {
+          if (!link && st === 'online') { link = self; take(r, 'a'); dropProbes(self); }
+          if (link && link === self) { status = st; repaint(); }
+        },
+      }));
+      probes.push(self);
+    });
     hostTimer = setTimeout(() => {
-      if (!link || status === 'online') return;
-      if (++hostTry >= RELAY.BROKERS.length) { toast(t('roomNoConnect')); return; }
-      tryHost();
+      if (link) return;
+      dropProbes();
+      status = 'off';
+      toast(t('roomNoConnect'));
+      repaint();
     }, HOST_WAIT);
     repaint();
   }
@@ -2537,6 +2615,13 @@ const Online = (function () {
   // Whoever opens a link they have not been in before takes the second chair; if they have been
   // in this room, they get their own chair back.
   const join = (r) => { swapped = false; connect(r, seatFor(r) || 'b'); };
+
+  // A code gets read down a phone or retyped when a chat app mangles the link. The random part of
+  // a room id never uses l, o, 0 or 1, and the broker character is always the first one, so these
+  // substitutions cannot collide with a real code.
+  const CODE = new RegExp('^[0-' + (RELAY.BROKERS.length - 1) + '][a-z2-9]{7}$');
+  const tidy = (raw) => String(raw || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    .replace(/^z/, '2').replace(/^o/, '0').replace(/^[il]/, '1');
 
   // Whatever arrives from the other device is replayed through the engine, never trusted.
   function adopt(code) {
@@ -2579,7 +2664,7 @@ const Online = (function () {
       : everPeer ? t('dotAway') : t('dotNotYet');
     const codeEl = document.getElementById('roomCode');
     codeEl.hidden = !waiting || !room;
-    codeEl.textContent = room ? room.slice(1).toUpperCase() : '';
+    codeEl.textContent = room ? room.toUpperCase() : '';
     document.getElementById('linkTurn').hidden = true;   // whose turn it is belongs to the status card
     // A rematch should not need another link: the room outlives the game in it.
     const again = document.getElementById('btnRematch');
@@ -2596,7 +2681,7 @@ const Online = (function () {
   async function share() {
     const url = urlFor(room);
     if (navigator.share) {
-      try { await navigator.share({ title: t('title'), text: t('shareText'), url }); return; }
+      try { await navigator.share({ title: t('title'), text: t('roomInvite'), url }); return; }
       catch (e) { if (e && e.name === 'AbortError') return; }
     }
     try { await navigator.clipboard.writeText(url); toast(t('shareCopied')); }
@@ -2604,15 +2689,16 @@ const Online = (function () {
   }
 
   return {
-    host, join, sync, render, share, active, colour,
+    host, join, sync, render, share, active, colour, tidy,
+    valid: (raw) => CODE.test(tidy(raw)),
     roomInUrl: () => (location.search.match(/[?&]r=([A-Za-z0-9]+)/) || [])[1] || null,
     leave() {
-      if (!link) return;
+      if (!link && !probes.length) return;   // probes are a room too, and they must be closed
       stop();
       history.replaceState(null, '', location.pathname);
       toast(t('roomLeft'));
     },
-    bye() { if (link) link.leave(); },     // the page is going away; just tell the other side
+    bye() { if (link) link.leave(); for (const p of probes) p.leave(); },   // going away: say so
     poke() { if (link) link.poke(); },     // back from the background: reconnect now, not in a minute
     get peerHere() { return peer; },
     get everHere() { return everPeer; },

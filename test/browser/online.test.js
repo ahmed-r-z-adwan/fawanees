@@ -58,7 +58,8 @@ test('two devices: a room, a waiting friend, moves both ways, and a goodbye', { 
     }));
     assert.match(waiting.cls, /waiting/, 'the dot should show we are waiting');
     assert.ok(waiting.text.length > 0, 'the waiting room should say what it is waiting for');
-    assert.strictEqual(waiting.code, room.slice(1).toUpperCase(), 'the room code should be readable aloud');
+    assert.strictEqual(waiting.code, room.toUpperCase(),
+      'the whole code, including the character that says which broker, because it can be typed in');
     assert.ok(waiting.shown, 'the code is worth showing while nobody has joined');
 
     // ---- the friend opens the link
@@ -312,6 +313,50 @@ test('the swap rule and passing cross between devices', { timeout: LONG * 2 }, a
     throw e;
   } finally {
     try { g && g.leave(); } catch (e) {}
+    await browser.close();
+    await server.close();
+  }
+});
+
+test('a room code can be typed in when the link does not survive the trip', { timeout: LONG * 2 }, async (t) => {
+  const server = await serve(DIST);
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  try {
+    const a = await hostPage(browser, server);
+    const room = await a.evaluate(() => window.__fw.online().room);
+
+    // A second device that never saw the link at all: no ?r=, just someone reading the code out.
+    const b = await open(browser, server.url + '/fawanees.html');
+
+    // A wrong one is refused rather than silently joining an empty room.
+    await b.evaluate(() => {
+      document.getElementById('btnNew').click();
+      document.querySelector('#segMode button[data-v="online"]').click();
+      document.getElementById('joinCode').value = 'NONSENSE';
+      document.getElementById('btnJoinCode').click();
+    });
+    assert.strictEqual(await b.evaluate(() => document.getElementById('dlgNew').open), true,
+      'a bad code should leave the dialog open, not start a room');
+    assert.strictEqual(await b.evaluate(() => window.__fw.online().active()), false);
+
+    // The real one, written the way someone would actually retype it.
+    const typed = ' ' + room.toUpperCase().slice(0, 4) + ' ' + room.toUpperCase().slice(4) + ' ';
+    t.diagnostic('typed as "' + typed + '" for room ' + room);
+    await b.evaluate((text) => {
+      document.getElementById('joinCode').value = text;
+      document.getElementById('btnJoinCode').click();
+    }, typed);
+    await until(b, "window.__fw.online().status === 'online'", LONG, 'joiner online');
+    assert.strictEqual(await b.evaluate(() => window.__fw.online().room), room);
+    await until(a, 'window.__fw.online().peerHere', LONG, 'the host to see them arrive');
+    await until(b, 'window.__fw.online().peerHere', LONG, 'and them to see the host');
+    assert.strictEqual(await b.evaluate(() => window.__fw.online().seat), 'b');
+    assert.deepStrictEqual(a.errors, []);
+    assert.deepStrictEqual(b.errors, []);
+  } catch (e) {
+    if (isBroker(e)) { t.skip('no public broker reachable from here: ' + e.message); return; }
+    throw e;
+  } finally {
     await browser.close();
     await server.close();
   }

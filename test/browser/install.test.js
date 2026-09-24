@@ -6,7 +6,7 @@ const assert = require('node:assert');
 const path = require('path');
 const { webkit, chromium, devices } = require('playwright');
 const { serve } = require('../tools/serve.js');
-const { noFonts, isPageError } = require('../tools/nofonts.js');
+const { noFontsPW, isPageError } = require('../tools/nofonts.js');
 
 const DIST = path.join(__dirname, '..', '..', 'dist');
 const PWA = path.join(__dirname, '..', '..', 'pwa');
@@ -16,7 +16,7 @@ async function open(engine, device, dir, file) {
   const browser = await engine.launch();
   const ctx = await browser.newContext({ ...device });
   const page = await ctx.newPage();
-  await noFonts(page);
+  await noFontsPW(page);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
@@ -105,7 +105,7 @@ test('a game already installed is not asked to install again', async (t) => {
   try {
     const ctx = await browser.newContext({ ...devices['Pixel 7'] });
     const page = await ctx.newPage();
-    await noFonts(page);
+    await noFontsPW(page);
     // what the browser reports when the page is running from the home screen
     await page.addInitScript(() => {
       const real = window.matchMedia.bind(window);

@@ -887,7 +887,8 @@ function updatePanel(extra) {
   document.querySelector('.meter').classList.toggle('unknown', p1 === null);
   let status;
   if (game.over) status = t('over');
-  else if (Online.active() && Online.status !== 'online') status = t('roomLost');
+  else if (Online.active() && Online.status !== 'online')
+    status = t(Online.status === 'prep' ? 'roomPrep' : 'roomLost');
   else if (Online.active() && !Online.peerHere) status = t(Online.everHere ? 'roomGone' : 'roomWaiting');
   else if (busy && !isHuman(game.toMove)) status = t('thinking');
   else if (isHuman(game.toMove)) status = cfg.mode === 'pvp' ? t('turnOf', t(game.toMove === 1 ? 'gold' : 'turq')) : t('yourTurn');
@@ -1344,7 +1345,9 @@ const Online = (function () {
   let link = null, room = null, seat = null, probes = [];
   let status = 'off', peer = false, everPeer = false, hostTimer = null, swapped = false;
 
-  const active = () => !!link;
+  // True from the moment a room starts being opened, not from when it succeeds: the card has to
+  // show "setting up" and the board has to stay locked in between.
+  const active = () => !!link || probes.length > 0;
   const colour = () => (seat === 'a' ? 1 : 2);
   // Not origin + pathname: a page opened straight from disk has no origin, and the single-file
   // copy is a real way people run this.
@@ -1524,7 +1527,7 @@ const Online = (function () {
     valid: (raw) => CODE.test(tidy(raw)),
     roomInUrl: () => (location.search.match(/[?&]r=([A-Za-z0-9]+)/) || [])[1] || null,
     leave() {
-      if (!link) return;
+      if (!link && !probes.length) return;   // probes are a room too, and they must be closed
       stop();
       history.replaceState(null, '', location.pathname);
       toast(t('roomLeft'));
