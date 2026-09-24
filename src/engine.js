@@ -151,6 +151,22 @@
       return rec;
     }
     canPlace(p = this.toMove) { if (this.hands[p] <= 0) return false; computeLight(this.geo, this.board, this.sc); return countLegal(this.geo, this.board, p, this.sc, this.rules.restrict) > 0; }
+    // Swap rule: right after the opening lantern, and only then, the second player may take it as
+    // their own instead of answering it. The lantern changes colour, the opener gets their lantern
+    // back in hand, and the opener moves again -- so the taker is now a move ahead.
+    canSwap() { return this.history.length === 1 && this.history[0].move >= 0 && !this.history[0].swap; }
+    swapOpening() {
+      if (!this.canSwap()) return null;
+      const j = this.history[0].move, opener = this.history[0].player, taker = 3 - opener;
+      const rec = { before: this.board.slice(), player: taker, move: -2, waves: [], passed: false,
+                    prevLastPass: !!this.lastPass, handsBefore: this.hands.slice(), swap: true };
+      this.board[j] = taker;
+      this.hands[opener]++; this.hands[taker]--;
+      this.toMove = opener;
+      this.lastPass = false;
+      this.history.push(rec);
+      return rec;
+    }
     undo() {
       const rec = this.history.pop();
       if (!rec) return null;
@@ -222,57 +238,20 @@
       const d = p === 1 ? a - b : b - a;
       return d > 0 ? WIN + d : d < 0 ? -WIN + d : 0;
     }
+    // One search, run one iteration at a time. The caller decides when the next iteration
+    // may start and how long it may take, which is what lets the same search run inside a
+    // worker (stream a result per depth) or on the main thread in short slices (never freeze).
+    startSearch(board, side, opts = {}) { return new SearchRun(this, board, side, opts); }
+    // Blocking convenience wrapper: iterative deepening until the time or depth budget runs out.
     search(board, side, opts = {}) {
-      const prevPass = !!opts.prevPass;
-      const hands = opts.hands || [0, 999, 999];
-      const H1 = Math.min(hands[1], 127), H2 = Math.min(hands[2], 127);
-      this.rootH = [0, H1, H2];
-      const timeMs = opts.timeMs ?? 1000, maxDepth = opts.maxDepth ?? 64, onDepth = opts.onDepth;
-      this.deadline = Date.now() + timeMs; this.nodes = 0; this.stop = false; this.nodeLimit = opts.nodeLimit ?? Infinity;
-      this.history.fill(0);
-      const b0 = this.boards[0]; b0.set(board);
-      const sc = this.scs[0];
-      computeLight(this.geo, b0, sc);
-      const rootMoves = [];
-      const n = (side === 1 ? H1 : H2) > 0 ? legalMoves(this.geo, b0, side, sc, this.moves[0], this.rules.restrict) : 0;
-      for (let i = 0; i < n; i++) rootMoves.push({ move: this.moves[0][i], score: 0 });
-      rootMoves.push({ move: -1, score: 0 }); // pass is always allowed
-      let best = null, bestDepth = 0, lastScores = null, pv = [];
-      const t0 = Date.now();
-      for (let depth = 1; depth <= maxDepth; depth++) {
-        let alpha = -Infinity, beta = Infinity, bestMove = -1, bestVal = -Infinity;
-        const scores = [];
-        for (let k = 0; k < rootMoves.length; k++) {
-          const m = rootMoves[k].move;
-          const b1 = this.boards[1]; b1.set(b0);
-          let v;
-          if (m < 0) {
-            v = prevPass ? this.terminalValue(b1, side, this.scs[1]) : -this.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, true, H1, H2);
-          } else {
-            applyMove(this.geo, b1, side, m, this.rules, this.scs[1], false);
-            v = -this.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, false, side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
-          }
-          if (this.stop) break;
-          rootMoves[k].score = v; scores.push(v);
-          if (v > bestVal) { bestVal = v; bestMove = m; }
-          if (v > alpha) alpha = v;
-        }
-        if (this.stop) {
-          // Aborted iteration: keep the previous depth's answer, unless a move searched in full at this depth
-          // beat the previous best move (which is always searched first).
-          if (best && scores.length > 1 && bestMove !== rootMoves[0].move && bestVal > scores[0]) best = { move: bestMove, value: best.value, depth: best.depth };
-          break;
-        }
-        rootMoves.sort((x, y) => y.score - x.score);
-        best = { move: bestMove, value: bestVal, depth };
-        bestDepth = depth;
-        lastScores = rootMoves.map(r => ({ move: r.move, score: r.score }));
-        pv = this.extractPV(b0, side, depth, prevPass, bestMove, H1, H2);
-        if (onDepth) onDepth({ depth, move: bestMove, value: bestVal, nodes: this.nodes, ms: Date.now() - t0, pv: pv.slice(), scores: lastScores });
-        if (Math.abs(bestVal) >= WIN - 200) break; // found forced result
-        if (Date.now() > this.deadline) break;
+      const run = this.startSearch(board, side, opts);
+      const deadline = Date.now() + (opts.timeMs ?? 1000);
+      const onDepth = opts.onDepth;
+      while (!run.finished && Date.now() <= deadline) {
+        if (!run.step(deadline)) break;
+        if (onDepth) onDepth(run.snapshot());
       }
-      return { move: best ? best.move : rootMoves[0].move, value: best ? best.value : 0, depth: bestDepth, nodes: this.nodes, ms: Date.now() - t0, pv, scores: lastScores || rootMoves.map(r => ({ move: r.move, score: 0 })) };
+      return run.result();
     }
     negamax(board, side, depth, alpha, beta, ply, prevPass, h1, h2) {
       this.nodes++;
@@ -352,6 +331,86 @@
     }
   }
 
-  const api = { makeGeometry, makeScratch, computeLight, legalMoves, countLegal, applyMove, score, Game, Engine, WIN, DIRS };
+  // One iterative-deepening search, resumable between depths.
+  // step(deadline) runs the next depth and returns true if it finished it. If the deadline cut it
+  // short it returns false and leaves the depth un-advanced: calling step again retries the same
+  // depth, and the transposition table makes the already-searched part nearly free, so a search
+  // too big for one slice still converges over several slices.
+  class SearchRun {
+    constructor(E, board, side, opts) {
+      this.E = E; this.side = side;
+      this.prevPass = !!opts.prevPass;
+      const hands = opts.hands || [0, 999, 999];
+      this.H1 = Math.min(hands[1], 127); this.H2 = Math.min(hands[2], 127);
+      E.rootH = [0, this.H1, this.H2];
+      this.maxDepth = opts.maxDepth ?? 64;
+      this.nodeLimit = opts.nodeLimit ?? Infinity;
+      E.nodes = 0; E.history.fill(0);
+      const b0 = E.boards[0]; b0.set(board);
+      this.b0 = b0;
+      const sc = E.scs[0];
+      computeLight(E.geo, b0, sc);
+      this.rootMoves = [];
+      const n = (side === 1 ? this.H1 : this.H2) > 0 ? legalMoves(E.geo, b0, side, sc, E.moves[0], E.rules.restrict) : 0;
+      for (let i = 0; i < n; i++) this.rootMoves.push({ move: E.moves[0][i], score: 0 });
+      this.rootMoves.push({ move: -1, score: 0 }); // pass is always allowed
+      this.depth = 0; this.best = null; this.pv = []; this.scores = null;
+      this.finished = false;
+      this.t0 = Date.now();
+    }
+    step(deadline) {
+      const E = this.E;
+      if (this.finished) return false;
+      const depth = this.depth + 1;
+      if (depth > this.maxDepth) { this.finished = true; return false; }
+      E.deadline = deadline; E.stop = false; E.nodeLimit = this.nodeLimit;
+      const side = this.side, b0 = this.b0, rootMoves = this.rootMoves, H1 = this.H1, H2 = this.H2;
+      let alpha = -Infinity; const beta = Infinity;
+      let bestMove = -1, bestVal = -Infinity;
+      const scores = [];
+      for (let k = 0; k < rootMoves.length; k++) {
+        const m = rootMoves[k].move;
+        const b1 = E.boards[1]; b1.set(b0);
+        let v;
+        if (m < 0) {
+          v = this.prevPass ? E.terminalValue(b1, side, E.scs[1]) : -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, true, H1, H2);
+        } else {
+          applyMove(E.geo, b1, side, m, E.rules, E.scs[1], false);
+          v = -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, false, side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
+        }
+        if (E.stop) break;
+        rootMoves[k].score = v; scores.push(v);
+        if (v > bestVal) { bestVal = v; bestMove = m; }
+        if (v > alpha) alpha = v;
+      }
+      if (E.stop) {
+        // Aborted iteration: keep the previous depth's answer, unless a move searched in full at this
+        // depth beat the previous best move (which is always searched first).
+        if (this.best && scores.length > 1 && bestMove !== rootMoves[0].move && bestVal > scores[0]) this.best = { move: bestMove, value: this.best.value, depth: this.best.depth };
+        else if (!this.best && scores.length) this.best = { move: bestMove, value: bestVal, depth: 0 };
+        return false;
+      }
+      rootMoves.sort((x, y) => y.score - x.score);
+      this.depth = depth;
+      this.best = { move: bestMove, value: bestVal, depth };
+      this.scores = rootMoves.map(r => ({ move: r.move, score: r.score }));
+      this.pv = E.extractPV(b0, side, depth, this.prevPass, bestMove, H1, H2);
+      if (Math.abs(bestVal) >= WIN - 200) this.finished = true; // forced result: deeper cannot change it
+      if (depth >= this.maxDepth) this.finished = true;
+      return true;
+    }
+    snapshot() {
+      return { depth: this.depth, move: this.best.move, value: this.best.value, nodes: this.E.nodes,
+               ms: Date.now() - this.t0, pv: this.pv.slice(), scores: this.scores, side: this.side };
+    }
+    result() {
+      const b = this.best;
+      return { move: b ? b.move : this.rootMoves[0].move, value: b ? b.value : 0, depth: this.depth,
+               nodes: this.E.nodes, ms: Date.now() - this.t0, pv: this.pv,
+               scores: this.scores || this.rootMoves.map(r => ({ move: r.move, score: 0 })), side: this.side };
+    }
+  }
+
+  const api = { makeGeometry, makeScratch, computeLight, legalMoves, countLegal, applyMove, score, Game, Engine, SearchRun, WIN, DIRS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Fawanees = api;
 })(typeof window !== 'undefined' ? window : globalThis);

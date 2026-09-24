@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>فوانيس</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2315112a"/><circle cx="32" cy="35" r="21" fill="%23f2b447" opacity=".22"/><rect x="29.5" y="3" width="5" height="7" fill="%23f2b447"/><path d="M32 8l7 9H25z" fill="%23f2b447"/><path d="M22 18h20l4 14-4 16H22l-4-16z" fill="%23ffe9b8" stroke="%23f2b447" stroke-width="3" stroke-linejoin="round"/><rect x="19" y="48" width="26" height="5" rx="2" fill="%23f2b447"/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
@@ -153,6 +154,7 @@ dialog li { margin: 6px 0; }
 <dialog id="dlgHow">
   <h2 data-i18n="how">كيف صُنعت؟</h2>
   <div id="howBody" class="stats"></div>
+  <p class="stats" id="howEngine"></p>
   <div class="dialog-actions"><button class="btn primary" data-close data-i18n="close">إغلاق</button></div>
 </dialog>
 
@@ -162,8 +164,18 @@ dialog li { margin: 6px 0; }
   <div class="dialog-actions"><button class="btn" data-close data-i18n="close">إغلاق</button><button class="btn primary" id="btnAgain" data-i18n="again">العب مرة أخرى</button></div>
 </dialog>
 
-<script>
+<!-- The engine runs here AND is read back as text to build the worker, so it is inlined once. -->
+<script id="engineCode">
 /*ENGINE*/
+</script>
+<script id="workerCode" type="text/plain">
+/*WORKER*/
+</script>
+<script>
+/*CALIBRATION*/
+</script>
+<script>
+/*OPENING*/
 </script>
 <script>
 (function () {
@@ -171,12 +183,16 @@ dialog li { margin: 6px 0; }
 const F = window.Fawanees;
 const RULES = { K: 3, restrict: false, supply: 24, range: 2 };
 const RADIUS = 5;
+// Time budgets are set in docs/REPORT.md from a measurement on a throttled mid-range phone.
 const LEVELS = [
   { name: 'lv0', ms: 120, depth: 1, noise: 3.0 },
   { name: 'lv1', ms: 350, depth: 2, noise: 0.8 },
   { name: 'lv2', ms: 1000, depth: 64, noise: 0 },
   { name: 'lv3', ms: 2600, depth: 64, noise: 0 },
 ];
+const PREDICT_MS = 280, HINT_MS = 700;
+const CALIB = window.FawaneesCalibration;
+const OPENING = window.FawaneesOpening;
 const COLORS = { 1: { glow: '#f2b447', core: '#ffe9b8', rgb: '242,180,71' }, 2: { glow: '#3cc8cf', core: '#c8f7f8', rgb: '60,200,207' } };
 const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -195,6 +211,9 @@ const T = {
     confirmHint: 'اضغط مرة ثانية للتأكيد', swapOffer: 'يحق لك أن تأخذ فانوس الافتتاح لنفسك بدل الرد عليه',
     aiSwapped: 'أخذت الآلة فانوس افتتاحك لنفسها: رأت أنه قوي', aiNoSwap: 'قررت الآلة ألا تأخذ فانوسك',
     depthLine: (d, n, s) => `بحثت حتى العمق ${d}، وفحصت ${n} وضعية (${s} في الثانية)`,
+    searching: (d, n) => `تبحث الآن: العمق ${d}، ${n} وضعية`,
+    engineThread: 'يعمل بحث الآلة على خيط منفصل، فلا تتجمّد الصفحة.',
+    engineMain: 'تعذّر تشغيل خيط منفصل هنا، فالبحث يجري على الخيط الرئيسي بشرائح قصيرة. الصفحة تبقى مستجيبة.',
     planLine: 'خطتها للحركات القادمة مرسومة على اللوح بالأرقام', forced: 'ترى الآلة نتيجة مضمونة', 
     predRight: 'توقّعتُ حركتك هذه', predWrong: 'توقّعتُ أن تلعب في الخانة المعلّمة', predScore: (a, b) => `توقّعتُ ${a} من ${b} حركات لك`,
     chain: n => `سلسلة: تحوّل ${n}`, passed: n => `${n} مرّر`, over: 'انتهت اللعبة', winner: n => `فاز ${n}`, draw: 'تعادل',
@@ -233,6 +252,9 @@ const T = {
     confirmHint: 'Tap again to confirm', swapOffer: 'You may take the opening lantern for yourself instead of answering it',
     aiSwapped: 'The machine took your opening lantern: it judged it too strong', aiNoSwap: 'The machine chose not to take your lantern',
     depthLine: (d, n, s) => `Searched to depth ${d}, examined ${n} positions (${s} per second)`,
+    searching: (d, n) => `Searching: depth ${d}, ${n} positions`,
+    engineThread: 'The search runs on its own thread, so the page never freezes.',
+    engineMain: 'A separate thread could not start here, so the search runs on the main thread in short slices. The page stays responsive.',
     planLine: 'Its plan for the next moves is numbered on the board', forced: 'The machine sees a forced result',
     predRight: 'I predicted this move', predWrong: 'I predicted you would play on the marked cell', predScore: (a, b) => `I predicted ${a} of your ${b} moves`,
     chain: n => `Chain: ${n} flipped`, passed: n => `${n} passed`, over: 'Game over', winner: n => `${n} wins`, draw: 'Draw',
@@ -273,23 +295,150 @@ function applyLang() {
 }
 
 // ---------------- state ----------------
-let game, engine, cfg = { mode: 'ai', level: 2, human: 1 };
+let game, cfg = { mode: 'ai', level: 2, human: 1 };
 let selected = -1, busy = false, lastInfo = null, plan = [], prediction = null, predStats = { hit: 0, total: 0 }, revealCell = -1;
 let anim = null, biggestChain = 0, swapUsed = false, openingCell = -1, cursor = -1, demoTimer = null;
+let live = null;              // latest streamed search depth, drawn on the board while the AI thinks
+let generation = 0;           // bumped whenever the position is reset, to drop stale search results
+let currentThink = null;      // cancel handle for the search in flight
 const probHistory = [];
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 let geo, size = 20, cx = 0, cy = 0, dpr = 1;
 
+// ---------------- AI scheduling ----------------
+// The search must never block the page. First choice is a Web Worker built from a Blob of the
+// inlined engine, so the search runs on another thread entirely. If the worker cannot start --
+// which is what happens when the single file is opened straight from disk in Chrome, because a
+// blob: worker inherits an opaque file:// origin -- we fall back to running the same search on
+// the main thread in short slices, yielding between them. Either way every completed depth is
+// streamed back, so the board can show the machine thinking.
+const AI = (function () {
+  const SLICE_MS = 10;          // longest main-thread block the fallback allows itself
+  const WORKER_HANDSHAKE_MS = 2500;
+  let worker = null, ready = null, mode = 'pending', seq = 0;
+  let localEngine = null, localGeoKey = '';
+  const inflight = new Map();   // id -> {onDepth, resolve, cancelled}
+
+  // A macrotask that is not clamped to 4ms the way nested setTimeout(0) is.
+  const chan = typeof MessageChannel !== 'undefined' ? new MessageChannel() : null;
+  const yieldQueue = [];
+  if (chan) chan.port1.onmessage = () => { const f = yieldQueue.shift(); if (f) f(); };
+  const soon = chan ? (f) => { yieldQueue.push(f); chan.port2.postMessage(0); } : (f) => setTimeout(f, 0);
+
+  function workerSource() {
+    return document.getElementById('engineCode').textContent + '\n;\n' + document.getElementById('workerCode').textContent;
+  }
+  function failWorker(why) {
+    if (mode === 'local') return;
+    mode = 'local';
+    lastFallbackReason = why;
+    if (worker) { try { worker.terminate(); } catch (e) {} worker = null; }
+    // Anything still out there has to be redone locally.
+    for (const [, job] of inflight) if (!job.cancelled) job.restart();
+    inflight.clear();
+  }
+  let lastFallbackReason = '';
+
+  function boot() {
+    if (ready) return ready;
+    ready = new Promise(resolve => {
+      if (typeof Worker === 'undefined' || typeof Blob === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) {
+        failWorker('no Worker support'); return resolve('local');
+      }
+      let url = null;
+      try {
+        url = URL.createObjectURL(new Blob([workerSource()], { type: 'text/javascript' }));
+        worker = new Worker(url);
+      } catch (e) {
+        if (url) URL.revokeObjectURL(url);
+        failWorker('Worker constructor threw: ' + e); return resolve('local');
+      }
+      const timer = setTimeout(() => { failWorker('worker did not answer in ' + WORKER_HANDSHAKE_MS + 'ms'); resolve('local'); }, WORKER_HANDSHAKE_MS);
+      worker.onerror = (e) => { clearTimeout(timer); if (e && e.preventDefault) e.preventDefault(); failWorker('worker error: ' + ((e && e.message) || 'blocked')); resolve('local'); };
+      worker.onmessage = (ev) => {
+        const m = ev.data;
+        if (m.type === 'ready') { clearTimeout(timer); URL.revokeObjectURL(url); mode = 'worker'; return resolve('worker'); }
+        const job = inflight.get(m.id);
+        if (!job) return;
+        if (m.type === 'depth') { if (!job.cancelled) job.onDepth && job.onDepth(m); return; }
+        inflight.delete(m.id);
+        if (m.type === 'fail') { if (!job.cancelled) job.restart(); return; }
+        job.resolve(m);
+      };
+      worker.postMessage({ type: 'ping' });
+    });
+    return ready;
+  }
+
+  function localRun(board, side, opts, onDepth, isStale) {
+    const key = RADIUS + '|' + JSON.stringify(RULES);
+    if (!localEngine || localGeoKey !== key) { localEngine = new F.Engine(geo, RULES, { mob: 0 }); localGeoKey = key; }
+    return new Promise(resolve => {
+      const run = localEngine.startSearch(board, side, opts);
+      const deadline = Date.now() + (opts.timeMs ?? 1000);
+      const tick = () => {
+        if (isStale()) return resolve(run.result());
+        if (run.finished || Date.now() > deadline) return resolve(run.result());
+        const advanced = run.step(Math.min(deadline, Date.now() + SLICE_MS));
+        if (advanced && onDepth) onDepth(run.snapshot());
+        if (run.finished || Date.now() >= deadline) return resolve(run.result());
+        soon(tick);
+      };
+      soon(tick);
+    });
+  }
+
+  return {
+    // Kick the worker off early so the first move does not pay the startup cost.
+    warmup() { boot(); },
+    // Used by the tests to exercise the fallback path on a browser where workers do start.
+    forceLocal() { failWorker('forced by test'); ready = Promise.resolve('local'); },
+    get mode() { return mode; },
+    get fallbackReason() { return lastFallbackReason; },
+    // Returns {promise, cancel}. cancel() stops the callbacks; the promise still settles.
+    think(board, side, opts, onDepth) {
+      const id = ++seq;
+      let cancelled = false;
+      const snapshot = Int8Array.from(board);
+      const promise = boot().then(which => {
+        if (cancelled) return { move: -1, value: 0, depth: 0, nodes: 0, ms: 0, pv: [], scores: [], side, cancelled: true };
+        if (which === 'worker' && worker) {
+          return new Promise(resolve => {
+            const job = {
+              onDepth: (m) => { if (!cancelled) onDepth && onDepth(m); },
+              resolve,
+              get cancelled() { return cancelled; },
+              restart: () => localRun(snapshot, side, opts, (m) => { if (!cancelled) onDepth && onDepth(m); }, () => cancelled).then(resolve),
+            };
+            inflight.set(id, job);
+            const buf = snapshot.slice().buffer;
+            worker.postMessage({ type: 'search', id, radius: RADIUS, rules: RULES, board: buf, side, opts }, [buf]);
+          });
+        }
+        return localRun(snapshot, side, opts, (m) => { if (!cancelled) onDepth && onDepth(m); }, () => cancelled);
+      });
+      return { promise, cancel() { cancelled = true; } };
+    },
+  };
+})();
+
+function abortThinking() {
+  generation++;
+  if (currentThink) { currentThink.cancel(); currentThink = null; }
+  live = null;
+}
+
 function newGame(opts) {
   Object.assign(cfg, opts || {});
   if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+  abortThinking();
   game = new F.Game(RADIUS, RULES);
   geo = game.geo;
-  engine = new F.Engine(geo, RULES, { mob: 0 });
   selected = -1; busy = false; lastInfo = null; plan = []; prediction = null; predStats = { hit: 0, total: 0 }; revealCell = -1;
   biggestChain = 0; swapUsed = false; openingCell = -1; cursor = geo.index.get('0,0'); probHistory.length = 0;
+  AI.warmup();
   resize(); updatePanel(); draw();
   setTimeout(nextTurn, 250);
 }
@@ -316,9 +465,9 @@ function cellAt(x, y) {
   const i = geo.index.get(rq + ',' + rr);
   return i === undefined ? -1 : i;
 }
-function hexPath(x, y, s) { ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k; const X = x + s * Math.cos(a), Y = y + s * Math.sin(a); k ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.closePath(); }
+function hexPath(c, x, y, s) { c.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k; const X = x + s * Math.cos(a), Y = y + s * Math.sin(a); k ? c.lineTo(X, Y) : c.moveTo(X, Y); } c.closePath(); }
 
-function drawLantern(x, y, s, p, alpha = 1, glow = 1) {
+function drawLantern(ctx, x, y, s, p, alpha = 1, glow = 1) {
   const c = COLORS[p]; ctx.save(); ctx.globalAlpha = alpha;
   const g = ctx.createRadialGradient(x, y, 0, x, y, s * 1.25);
   g.addColorStop(0, `rgba(${c.rgb},${0.55 * glow})`); g.addColorStop(1, `rgba(${c.rgb},0)`);
@@ -334,6 +483,36 @@ function drawLantern(x, y, s, p, alpha = 1, glow = 1) {
   ctx.globalAlpha = alpha * 0.55; ctx.beginPath(); ctx.moveTo(x - u * 0.28, y - u * 1.0); ctx.lineTo(x - u * 0.28, y + u * 0.9); ctx.moveTo(x + u * 0.28, y - u * 1.0); ctx.lineTo(x + u * 0.28, y + u * 0.9); ctx.lineWidth = Math.max(1, u * 0.08); ctx.stroke();
   ctx.globalAlpha = alpha; ctx.fillStyle = c.glow; ctx.fillRect(x - u * 0.8, y + u * 0.92, u * 1.6, u * 0.28);
   ctx.restore();
+}
+
+// Tiles shaded by who lights them, and the beams themselves. Shared by the game board and the
+// tutorial board so a lantern looks and behaves the same in both.
+function paintTiles(c, g, pos, size, board, light) {
+  for (let i = 0; i < g.N; i++) {
+    const [x, y] = pos(i);
+    hexPath(c, x, y, size * 0.95); c.fillStyle = '#1f1a3a'; c.fill();
+    if (board[i] === 0) {
+      const a = light.l1[i], b = light.l2[i];
+      if (a > b) { c.fillStyle = `rgba(242,180,71,${0.10 + 0.08 * Math.min(a, 4)})`; c.fill(); }
+      else if (b > a) { c.fillStyle = `rgba(60,200,207,${0.10 + 0.08 * Math.min(b, 4)})`; c.fill(); }
+      else if (a > 0) { c.fillStyle = 'rgba(214,205,245,0.09)'; c.fill(); }
+    }
+    c.lineWidth = Math.max(1, size * 0.05); c.strokeStyle = '#3a3363'; c.stroke();
+  }
+}
+function paintBeams(c, g, pos, size, board) {
+  for (let i = 0; i < g.N; i++) {
+    const p = board[i]; if (!p) continue;
+    const [x0, y0] = pos(i), col = COLORS[p].rgb;
+    for (let d = 0; d < 6; d++) {
+      const k0 = g.rayStart[i * 6 + d], len = Math.min(g.rayLen[i * 6 + d], RULES.range); let last = -1;
+      for (let k = k0; k < k0 + len; k++) { const j = g.rayCells[k]; if (board[j]) break; last = j; }
+      if (last < 0) continue;
+      const [x1, y1] = pos(last);
+      c.strokeStyle = `rgba(${col},0.16)`; c.lineWidth = size * 0.28; c.lineCap = 'round'; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+      c.strokeStyle = `rgba(${col},0.38)`; c.lineWidth = Math.max(1, size * 0.05); c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke();
+    }
+  }
 }
 
 function draw(now) {
@@ -352,40 +531,41 @@ function draw(now) {
     prev = { board: b2, sc: sc2, flips: new Set([].concat(...waves)) };
   }
   const L = prev ? prev.sc : sc, B = prev ? prev.board : board;
-  // tiles
-  for (let i = 0; i < geo.N; i++) {
-    const [x, y] = px(i);
-    hexPath(x, y, size * 0.95); ctx.fillStyle = '#1f1a3a'; ctx.fill();
-    if (B[i] === 0) {
-      const a = L.l1[i], b = L.l2[i];
-      if (a > b) { ctx.fillStyle = `rgba(242,180,71,${0.10 + 0.08 * Math.min(a, 4)})`; ctx.fill(); }
-      else if (b > a) { ctx.fillStyle = `rgba(60,200,207,${0.10 + 0.08 * Math.min(b, 4)})`; ctx.fill(); }
-      else if (a > 0) { ctx.fillStyle = 'rgba(214,205,245,0.09)'; ctx.fill(); }
-    }
-    ctx.lineWidth = Math.max(1, size * 0.05); ctx.strokeStyle = '#3a3363'; ctx.stroke();
-  }
-  // beams
-  for (let i = 0; i < geo.N; i++) {
-    const p = B[i]; if (!p) continue;
-    const [x0, y0] = px(i); const col = COLORS[p].rgb;
-    for (let d = 0; d < 6; d++) {
-      const k0 = geo.rayStart[i * 6 + d], len = Math.min(geo.rayLen[i * 6 + d], RULES.range); let last = -1;
-      for (let k = k0; k < k0 + len; k++) { const j = geo.rayCells[k]; if (B[j]) break; last = j; }
-      if (last < 0) continue;
-      const [x1, y1] = px(last);
-      ctx.strokeStyle = `rgba(${col},0.16)`; ctx.lineWidth = size * 0.28; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      ctx.strokeStyle = `rgba(${col},0.38)`; ctx.lineWidth = Math.max(1, size * 0.05); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  paintTiles(ctx, geo, px, size, B, L);
+  paintBeams(ctx, geo, px, size, B);
+  // ---- the machine's thinking, drawn live ----
+  const showThoughts = document.getElementById('optThoughts').checked;
+  if (showThoughts && !prev && live && live.scores && live.scores.length) {
+    // candidate cells glowing by how good the search currently rates them
+    const col = COLORS[live.side].rgb;
+    const cands = live.scores.filter(s => s.move >= 0 && board[s.move] === 0);
+    const best = cands.length ? cands[0].score : 0, SPAN = 12; // points below the best still worth showing
+    for (let k = 0; k < cands.length && k < 16; k++) {
+      const rel = (cands[k].score - (best - SPAN)) / SPAN;
+      if (!(rel > 0)) continue;
+      const [x, y] = px(cands[k].move);
+      hexPath(ctx, x, y, size * 0.9);
+      ctx.fillStyle = `rgba(${col},${(0.05 + 0.34 * rel * rel).toFixed(3)})`;
+      ctx.fill();
     }
   }
-  // plan ghosts (machine's expected line)
-  if (document.getElementById('optThoughts').checked && plan.length && !prev) {
-    plan.forEach((pm, k) => {
+  // principal variation as numbered ghost lanterns: live while it thinks, then the line it expects
+  if (showThoughts && !prev) {
+    const ghosts = (live && live.pv && live.pv.length) ? live.pv.slice(0, 5) : plan;
+    (ghosts || []).forEach((pm, k) => {
       if (pm.move < 0 || board[pm.move]) return;
-      const [x, y] = px(pm.move); const col = COLORS[pm.player].glow;
-      ctx.save(); ctx.setLineDash([size * 0.18, size * 0.14]); ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, size * 0.07);
-      ctx.beginPath(); ctx.arc(x, y, size * 0.5, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-      ctx.fillStyle = col; ctx.font = `700 ${Math.round(size * 0.55)}px "IBM Plex Sans Arabic", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(String(k + 1), x, y + size * 0.03);
+      const [x, y] = px(pm.move), c = COLORS[pm.player];
+      drawLantern(ctx, x, y, size * 0.78, pm.player, 0.28, 0.7);
+      ctx.save();
+      ctx.setLineDash([size * 0.18, size * 0.14]);
+      ctx.strokeStyle = `rgba(${c.rgb},0.8)`; ctx.lineWidth = Math.max(1, size * 0.06);
+      ctx.beginPath(); ctx.arc(x, y, size * 0.74, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      const r = Math.max(7, size * 0.29), bx = x + size * 0.58, by = y - size * 0.58;
+      ctx.fillStyle = c.glow; ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#15112a'; ctx.font = `700 ${Math.round(r * 1.3)}px "IBM Plex Sans Arabic", sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(k + 1), bx, by);
     });
   }
   // lanterns
@@ -399,23 +579,23 @@ function draw(now) {
     }
     const isNew = anim && anim.placed === i;
     const sc0 = isNew ? Math.min(1, Math.max(0, (tNow - anim.t0) / 260)) : 1;
-    drawLantern(x, y, size * 0.95 * (0.6 + 0.4 * sc0), p, prev && i === selected ? 0.75 : 1, isNew ? 1.6 - 0.6 * sc0 : 1);
+    drawLantern(ctx, x, y, size * 0.95 * (0.6 + 0.4 * sc0), p, prev && i === selected ? 0.75 : 1, isNew ? 1.6 - 0.6 * sc0 : 1);
     if (prev && prev.flips.has(i)) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, size * 0.08); ctx.beginPath(); ctx.arc(x, y, size * 0.72, 0, Math.PI * 2); ctx.stroke(); }
   }
   // last move marker
   const lastRec = game.history[game.history.length - 1];
   if (!prev && lastRec && lastRec.move >= 0 && !anim) {
     const [x, y] = px(lastRec.move); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1, size * 0.05);
-    hexPath(x, y, size * 0.86); ctx.stroke();
+    hexPath(ctx, x, y, size * 0.86); ctx.stroke();
   }
   // prediction reveal
   if (revealCell >= 0) {
     const [x, y] = px(revealCell); ctx.strokeStyle = '#ffe2a0'; ctx.lineWidth = Math.max(2, size * 0.1); ctx.setLineDash([size * 0.15, size * 0.1]);
-    hexPath(x, y, size * 0.8); ctx.stroke(); ctx.setLineDash([]);
+    hexPath(ctx, x, y, size * 0.8); ctx.stroke(); ctx.setLineDash([]);
   }
   // selection / keyboard cursor
-  if (selected >= 0) { const [x, y] = px(selected); ctx.strokeStyle = COLORS[game.toMove].glow; ctx.lineWidth = Math.max(2, size * 0.1); hexPath(x, y, size * 0.9); ctx.stroke(); }
-  else if (document.activeElement === canvas && cursor >= 0) { const [x, y] = px(cursor); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; hexPath(x, y, size * 0.9); ctx.stroke(); }
+  if (selected >= 0) { const [x, y] = px(selected); ctx.strokeStyle = COLORS[game.toMove].glow; ctx.lineWidth = Math.max(2, size * 0.1); hexPath(ctx, x, y, size * 0.9); ctx.stroke(); }
+  else if (document.activeElement === canvas && cursor >= 0) { const [x, y] = px(cursor); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; hexPath(ctx, x, y, size * 0.9); ctx.stroke(); }
 }
 
 function drawIcons() {
@@ -464,7 +644,9 @@ function updatePanel(extra) {
   document.getElementById('status').textContent = status;
   const mind = document.getElementById('mind'); mind.innerHTML = '';
   const add = (txt, cls) => { const p = document.createElement('p'); p.textContent = txt; if (cls) p.className = cls; mind.appendChild(p); };
-  if (lastInfo && cfg.mode !== 'pvp') {
+  if (live && busy && cfg.mode !== 'pvp') {
+    add(t('searching', live.depth, fmtNum(live.nodes)));
+  } else if (lastInfo && cfg.mode !== 'pvp') {
     add(t('depthLine', lastInfo.depth, fmtNum(lastInfo.nodes), fmtNum(Math.round(lastInfo.nodes / Math.max(0.001, lastInfo.ms / 1000)))));
     if (Math.abs(lastInfo.value) >= F.WIN - 500) add(t('forced'));
     else if (plan.length && document.getElementById('optThoughts').checked) add(t('planLine'));
@@ -475,7 +657,7 @@ function updatePanel(extra) {
   document.getElementById('btnPass').disabled = !human;
   document.getElementById('btnHint').disabled = !human;
   document.getElementById('btnUndo').disabled = busy || game.history.length === 0 || cfg.mode === 'demo';
-  const canSwap = human && game.history.length === 1 && !swapUsed && game.history[0].move >= 0;
+  const canSwap = human && !swapUsed && game.canSwap();
   document.getElementById('btnSwap').hidden = !canSwap;
 }
 let toastTimer = null;
@@ -513,7 +695,7 @@ function nextTurn() {
   if (!game.canPlace(p) && !isHuman(p)) { busy = false; return playMove(-1, () => setTimeout(nextTurn, 350)); }
   if (isHuman(p)) {
     busy = false; updatePanel();
-    if (game.history.length === 1 && !swapUsed) toast(t('swapOffer'));
+    if (!swapUsed && game.canSwap()) toast(t('swapOffer'));
     if (cfg.mode === 'ai' && document.getElementById('optPredict').checked) setTimeout(makePrediction, 60);
     return;
   }
@@ -521,54 +703,69 @@ function nextTurn() {
   setTimeout(() => machineMove(p), 60);
 }
 
-function searchFor(p, ms, depth) {
-  const res = engine.search(game.board, p, { timeMs: ms, maxDepth: depth, prevPass: game.lastPass, hands: game.hands });
-  return res;
+// Every search in the page goes through here, so none of them can block the UI.
+// `onDepth` is called once per completed search depth; stale results are dropped.
+function think(p, ms, depth, onDepth) {
+  const gen = generation;
+  const h = AI.think(game.board, p, { timeMs: ms, maxDepth: depth, prevPass: game.lastPass, hands: game.hands },
+    (m) => { if (gen === generation && onDepth) onDepth(m); });
+  return { cancel: h.cancel, promise: h.promise.then(res => (gen === generation && res && !res.cancelled) ? res : null) };
 }
 
 function ringOf(i) { const c = geo.cells[i]; return Math.max(Math.abs(c.q), Math.abs(c.r), Math.abs(c.q + c.r)); }
+function cellsByRing() {
+  const byRing = [];
+  for (let i = 0; i < geo.N; i++) { const r = ringOf(i); (byRing[r] || (byRing[r] = [])).push(i); }
+  return byRing;
+}
 
 function machineMove(p) {
   const lv = LEVELS[cfg.mode === 'demo' ? 2 : cfg.level];
-  // Opening: pick a balanced first lantern (edge or first ring, per the simulations)
+  // Opening: the first lantern comes from the measured opening policy, not from search.
   if (game.history.length === 0) {
-    const cands = []; for (let i = 0; i < geo.N; i++) { const r = ringOf(i); if (r === 1 || r === RADIUS) cands.push(i); }
-    const j = cands[Math.floor(Math.random() * cands.length)];
-    plan = []; lastInfo = null; busy = false;
+    const j = OPENING.pickOpening(cellsByRing());
+    plan = []; lastInfo = null; live = null; busy = false;
     return playMove(j, () => setTimeout(nextTurn, 300));
   }
-  // Swap decision as the second player: the simulations show rings 1-3 favour the opener
-  if (game.history.length === 1 && !swapUsed && game.history[0].move >= 0) {
+  // Swap decision as the second player.
+  if (!swapUsed && game.canSwap()) {
     const r = ringOf(game.history[0].move);
     swapUsed = true;
-    if (r >= 1 && r <= 3) { doSwap(); busy = false; toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
+    if (OPENING.shouldSwap(r, game.history[0].move, geo)) { doSwap(); busy = false; toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
     if (cfg.mode === 'ai') toast(t('aiNoSwap'));
   }
-  let res = searchFor(p, lv.ms, lv.depth);
-  let move = res.move;
-  if (lv.noise > 0 && res.scores && res.scores.length > 1) {
-    // weaker levels: pick among moves near the best with some randomness
-    const best = res.scores[0].score; const pool = res.scores.filter(s => s.score >= best - lv.noise);
-    move = pool[Math.floor(Math.random() * pool.length)].move;
-  }
-  lastInfo = { value: res.value, depth: res.depth, nodes: res.nodes, ms: res.ms, side: p };
-  plan = (res.pv || []).slice(1, 5);
-  busy = false;
-  playMove(move, () => setTimeout(nextTurn, cfg.mode === 'demo' ? 700 : 150));
+  live = null;
+  const handle = think(p, lv.ms, lv.depth, (m) => { live = m; updatePanel(); draw(); });
+  currentThink = handle;
+  handle.promise.then(res => {
+    currentThink = null;
+    if (!res) return;                       // position was reset while it was thinking
+    let move = res.move;
+    if (lv.noise > 0 && res.scores && res.scores.length > 1) {
+      // weaker levels: pick among moves near the best with some randomness
+      const best = res.scores[0].score; const pool = res.scores.filter(s => s.score >= best - lv.noise);
+      move = pool[Math.floor(Math.random() * pool.length)].move;
+    }
+    lastInfo = { value: res.value, depth: res.depth, nodes: res.nodes, ms: res.ms, side: p };
+    plan = (res.pv || []).slice(1, 5);
+    live = null; busy = false;
+    playMove(move, () => setTimeout(nextTurn, cfg.mode === 'demo' ? 700 : 150));
+  });
 }
 
 function doSwap() {
-  // The second player takes the opening lantern: it becomes theirs, and the opener moves again as the other colour.
-  const j = game.history[0].move;
-  game.board[j] = 2; game.hands = [0, 24, 23]; game.toMove = 1; swapUsed = true;
-  game.history.push({ before: game.history[0].before.slice(), player: 2, move: -2, waves: [], passed: false, prevLastPass: false, handsBefore: [0, 23, 24], swap: true });
-  plan = []; lastInfo = null; updatePanel(); draw();
+  game.swapOpening();
+  swapUsed = true;
+  plan = []; lastInfo = null; live = null; updatePanel(); draw();
 }
 
+// Runs while it is the human's turn. With a worker it is genuinely free; either way every depth
+// it completes refines the guess, so whenever the human moves we already have the best one so far.
 function makePrediction() {
   if (!isHuman(game.toMove) || busy || game.over) return;
-  const res = searchFor(game.toMove, 280, 64);
-  prediction = res ? res.move : null;
+  const handle = think(game.toMove, PREDICT_MS, 64, (m) => { if (isHuman(game.toMove) && !busy) prediction = m.move; });
+  currentThink = handle;
+  handle.promise.then(res => { if (currentThink === handle) currentThink = null; if (res && isHuman(game.toMove) && !busy) prediction = res.move; });
 }
 
 function humanPlay(j) {
@@ -627,22 +824,32 @@ document.getElementById('btnPass').onclick = () => { if (busy || !isHuman(game.t
 document.getElementById('btnSwap').onclick = () => { if (!isHuman(game.toMove)) return; selected = -1; doSwap(); setTimeout(nextTurn, 300); };
 document.getElementById('btnHint').onclick = () => {
   if (busy || !isHuman(game.toMove)) return;
-  const res = searchFor(game.toMove, 700, 64); if (res && res.move >= 0) { selected = res.move; cursor = res.move; draw(); toast(t('confirmHint')); }
-  else if (res) toast(t('pass'));
+  const btn = document.getElementById('btnHint'); btn.disabled = true;
+  think(game.toMove, HINT_MS, 64, (m) => { live = { ...m, hint: true }; draw(); }).promise.then(res => {
+    live = null; btn.disabled = false;
+    if (!res) return draw();
+    if (res.move >= 0) { selected = res.move; cursor = res.move; draw(); toast(t('confirmHint')); }
+    else { draw(); toast(t('pass')); }
+  });
 };
 document.getElementById('btnUndo').onclick = () => {
   if (busy || !game.history.length) return;
   selected = -1; plan = []; lastInfo = null; prediction = null;
-  const undoOne = () => { const rec = game.history[game.history.length - 1]; if (rec && rec.swap) { game.history.pop(); game.board = rec.before.slice(); game.board[game.history[0].move] = 1; game.hands = [0, 23, 24]; game.toMove = 2; swapUsed = false; } else game.undo(); };
+  abortThinking();
+  const undoOne = () => { const rec = game.undo(); if (rec && rec.swap) swapUsed = false; return rec; };
   undoOne();
   if (cfg.mode === 'ai') { while (game.history.length && !isHuman(game.toMove)) undoOne(); }
-  if (game.history.length <= 1) swapUsed = game.history.some(h => h.swap);
+  swapUsed = game.history.some(h => h.swap) || game.history.length > 1;
   updatePanel(); draw();
   if (!isHuman(game.toMove)) setTimeout(nextTurn, 200);
 };
 document.getElementById('btnLang').onclick = () => { lang = lang === 'ar' ? 'en' : 'ar'; try { localStorage.setItem('fw-lang', lang); } catch (e) {} applyLang(); draw(); };
 document.getElementById('btnRules').onclick = () => document.getElementById('dlgRules').showModal();
-document.getElementById('linkHow').onclick = e => { e.preventDefault(); document.getElementById('dlgHow').showModal(); };
+document.getElementById('linkHow').onclick = e => {
+  e.preventDefault();
+  document.getElementById('howEngine').textContent = AI.mode === 'worker' ? t('engineThread') : AI.mode === 'local' ? t('engineMain') : '';
+  document.getElementById('dlgHow').showModal();
+};
 document.getElementById('btnNew').onclick = () => document.getElementById('dlgNew').showModal();
 document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
 document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
@@ -660,7 +867,15 @@ document.getElementById('optThoughts').onchange = () => { updatePanel(); draw();
 window.addEventListener('resize', () => { resize(); draw(); });
 
 // expose for automated testing
-window.__fw = { get game() { return game; }, px: i => { const [x, y] = px(i); return [x / dpr, y / dpr]; }, get busy() { return busy; }, newGame };
+window.__fw = {
+  get game() { return game; }, get busy() { return busy; }, get live() { return live; },
+  get aiMode() { return AI.mode; }, get fallbackReason() { return AI.fallbackReason; },
+  px: i => { const [x, y] = px(i); return [x / dpr, y / dpr]; },
+  cellAt: (x, y) => cellAt(x * dpr, y * dpr),
+  newGame, playMove, think, levels: LEVELS, rules: RULES, radius: RADIUS,
+  setLevelMs: (i, ms) => { LEVELS[i].ms = ms; },
+  forceLocalAI: () => AI.forceLocal(),
+};
 
 drawIcons();
 newGame({ mode: 'ai', level: 2, human: 1 });

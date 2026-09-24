@@ -1,0 +1,5 @@
+node_modules/
+sim/out/
+test/out/
+*.log
+chain.svg

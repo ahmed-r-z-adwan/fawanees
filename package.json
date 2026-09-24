@@ -1,0 +1,18 @@
+{
+  "name": "fawanees",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Fawanees - a two-player game of light and shadow. Rules, balancing and AI by Claude (Anthropic); idea and publishing by Ahmed Adwan.",
+  "type": "commonjs",
+  "scripts": {
+    "build": "python build.py",
+    "test": "node --test test/",
+    "test:unit": "node --test test/unit/",
+    "test:browser": "node --test test/browser/",
+    "bench": "node sim/bench.js",
+    "selfplay": "node sim/selfplay.js"
+  },
+  "devDependencies": {
+    "puppeteer": "^25.12.0"
+  }
+}

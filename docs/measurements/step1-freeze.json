@@ -1,0 +1,11 @@
+{
+  "what": "Main-thread blocking while the machine takes its turn, Master level (1000 ms budget).",
+  "how": "node test/tools/freeze.js <page> --moves 5  -- headless Chromium, no CPU throttling, real canvas clicks, PerformanceObserver longtask entries and a requestAnimationFrame counter.",
+  "machine": "Windows 11, 16 logical cores",
+  "date": "2026-09-24",
+  "runs": [
+    {"label": "before: search on the main thread (baseline commit)", "mode": "legacy-main-thread", "turns": 4, "worstLongTaskMs": 1003, "totalBlockedMs": 4006, "longTaskCount": 4, "framesPerTurn": 28, "msPerTurn": 1267},
+    {"label": "after: search in a Web Worker", "mode": "worker", "turns": 5, "worstLongTaskMs": 0, "totalBlockedMs": 0, "longTaskCount": 0, "framesPerTurn": 132, "msPerTurn": 1058},
+    {"label": "after: main-thread fallback, time-sliced", "mode": "local", "turns": 5, "worstLongTaskMs": 0, "totalBlockedMs": 0, "longTaskCount": 0, "framesPerTurn": 67, "msPerTurn": 959}
+  ]
+}
