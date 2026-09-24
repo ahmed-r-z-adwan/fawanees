@@ -34,8 +34,11 @@
       const board = new Int8Array(msg.board);
       const opts = msg.opts || {};
       const run = E.startSearch(board, msg.side, opts);
-      const deadline = Date.now() + (opts.timeMs ?? 1000);
+      const budget = opts.timeMs ?? 1000;
+      const deadline = Date.now() + budget;
+      const early = opts.earlyExit === true;   // measured to cost strength; see engine.js
       while (!run.finished && Date.now() <= deadline) {
+        if (early && run.shouldStopEarly(budget, opts.branchFactor)) break;
         if (!run.step(deadline)) break;
         const s = run.snapshot();
         s.type = 'depth'; s.id = msg.id;

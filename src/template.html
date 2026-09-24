@@ -434,10 +434,13 @@ const AI = (function () {
     if (!localEngine || localGeoKey !== key) { localEngine = new F.Engine(geo, RULES, { mob: 0 }); localGeoKey = key; }
     return new Promise(resolve => {
       const run = localEngine.startSearch(board, side, opts);
-      const deadline = Date.now() + (opts.timeMs ?? 1000);
+      const budget = opts.timeMs ?? 1000;
+      const deadline = Date.now() + budget;
       const tick = () => {
         if (isStale()) return resolve(run.result());
         if (run.finished || Date.now() > deadline) return resolve(run.result());
+        // Same time management as the worker, and off by default for the same measured reason.
+        if (opts.earlyExit === true && run.shouldStopEarly(budget, opts.branchFactor)) return resolve(run.result());
         const advanced = run.step(Math.min(deadline, Date.now() + SLICE_MS));
         if (advanced && onDepth) onDepth(run.snapshot());
         if (run.finished || Date.now() >= deadline) return resolve(run.result());

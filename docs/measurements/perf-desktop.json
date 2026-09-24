@@ -1,0 +1,92 @@
+{
+ "page": "fawanees.html",
+ "throttle": 1,
+ "mode": "worker",
+ "levels": {
+  "0": {
+   "name": "Novice",
+   "budgetMs": 120,
+   "searches": 8,
+   "medianMs": 1,
+   "p90Ms": 1,
+   "maxMs": 1,
+   "avgDepth": 1,
+   "avgNodes": 85,
+   "nodesPerSec": 107937,
+   "eachMs": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "1": {
+   "name": "Skilled",
+   "budgetMs": 350,
+   "searches": 8,
+   "medianMs": 3,
+   "p90Ms": 4,
+   "maxMs": 4,
+   "avgDepth": 2,
+   "avgNodes": 433,
+   "nodesPerSec": 162009,
+   "eachMs": [
+    2,
+    3,
+    4,
+    3,
+    3,
+    2,
+    2,
+    3
+   ]
+  },
+  "2": {
+   "name": "Master",
+   "budgetMs": 1000,
+   "searches": 8,
+   "medianMs": 1003,
+   "p90Ms": 1004,
+   "maxMs": 1004,
+   "avgDepth": 4.1,
+   "avgNodes": 488576,
+   "nodesPerSec": 487266,
+   "eachMs": [
+    1002,
+    1002,
+    1001,
+    1003,
+    1003,
+    1003,
+    1004,
+    1003
+   ]
+  },
+  "3": {
+   "name": "Oracle",
+   "budgetMs": 2600,
+   "searches": 8,
+   "medianMs": 2602,
+   "p90Ms": 2603,
+   "maxMs": 2603,
+   "avgDepth": 5,
+   "avgNodes": 1286912,
+   "nodesPerSec": 494548,
+   "eachMs": [
+    2603,
+    2602,
+    2602,
+    2601,
+    2602,
+    2603,
+    2602,
+    2602
+   ]
+  }
+ },
+ "errors": []
+}

@@ -371,9 +371,11 @@
     // Blocking convenience wrapper: iterative deepening until the time or depth budget runs out.
     search(board, side, opts = {}) {
       const run = this.startSearch(board, side, opts);
-      const deadline = Date.now() + (opts.timeMs ?? 1000);
-      const onDepth = opts.onDepth;
+      const budget = opts.timeMs ?? 1000;
+      const deadline = Date.now() + budget;
+      const onDepth = opts.onDepth, early = opts.earlyExit === true, branch = opts.branchFactor;
       while (!run.finished && Date.now() <= deadline) {
+        if (early && run.shouldStopEarly(budget, branch)) break;
         if (!run.step(deadline)) break;
         if (onDepth) onDepth(run.snapshot());
       }
@@ -482,6 +484,8 @@
       this.depth = 0; this.best = null; this.pv = []; this.scores = null;
       this.finished = false;
       this.t0 = Date.now();
+      this.lastStepMs = 0;    // how long the last completed iteration took, for the time manager
+      this.stepAccumMs = 0;   // time already spent on the iteration in progress, across retries
     }
     step(deadline) {
       const E = this.E;
@@ -489,6 +493,7 @@
       const depth = this.depth + 1;
       if (depth > this.maxDepth) { this.finished = true; return false; }
       E.deadline = deadline; E.stop = false; E.nodeLimit = this.nodeLimit;
+      const stepStart = Date.now();
       const side = this.side, b0 = this.b0, rootMoves = this.rootMoves, H1 = this.H1, H2 = this.H2;
       let alpha = -Infinity; const beta = Infinity;
       let bestMove = -1, bestVal = -Infinity;
@@ -509,9 +514,13 @@
         // depth beat the previous best move (which is always searched first).
         if (this.best && scores.length > 1 && bestMove !== rootMoves[0].move && bestVal > scores[0]) this.best = { move: bestMove, value: this.best.value, depth: this.best.depth };
         else if (!this.best && scores.length) this.best = { move: bestMove, value: bestVal, depth: 0 };
+        // The sliced path retries the same depth, so remember what it has already cost.
+        this.stepAccumMs += Date.now() - stepStart;
         return false;
       }
       rootMoves.sort((x, y) => y.score - x.score);
+      this.lastStepMs = this.stepAccumMs + (Date.now() - stepStart);
+      this.stepAccumMs = 0;
       this.depth = depth;
       this.best = { move: bestMove, value: bestVal, depth };
       this.scores = rootMoves.map(r => ({ move: r.move, score: r.score }));
@@ -519,6 +528,21 @@
       if (Math.abs(bestVal) >= WIN - 200) this.finished = true; // forced result: deeper cannot change it
       if (depth >= this.maxDepth) this.finished = true;
       return true;
+    }
+    // Time management, measured and then switched off by default. The idea was that there is no
+    // point starting a ply that cannot finish: each ply costs about six times the one before
+    // (sim/timing.js), so most of a budget goes on a ply that gets abandoned.
+    //
+    // It does halve the thinking time, and the completed depth is the same. But an unfinished ply
+    // is not wasted: when one of its fully searched moves beats the previous best, the search takes
+    // it, and that happens in 12.5% of searches. Head to head at the same budget with sides swapped
+    // (sim/earlyExit.js), the engine that stopped early lost. So the page spends its whole budget,
+    // and responsiveness is handled by choosing the budget instead.
+    //
+    // Pass earlyExit: true to turn it on.
+    shouldStopEarly(budgetMs, branch) {
+      if (this.finished || this.depth < 2 || !this.lastStepMs) return false;
+      return (Date.now() - this.t0) + this.lastStepMs * (branch || 2.5) > budgetMs;
     }
     snapshot() {
       return { depth: this.depth, move: this.best.move, value: this.best.value, nodes: this.E.nodes,

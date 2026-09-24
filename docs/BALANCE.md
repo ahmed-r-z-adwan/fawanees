@@ -172,3 +172,56 @@ the full K=4 opening study, 8,190 games, about fifteen minutes. It has not been 
 
 So the honest state of it: K=4 clearly fixes the dynamics, clearly costs chain frequency, and its
 effect on balance is not yet measured well enough to quote.
+
+## Decision: the rules stay as they are
+
+**K=3, M=1 is kept. K=4 is not adopted.** Decided by Ahmed Adwan on 2026-09-24, from the table above.
+
+The reasons, in order of weight:
+
+1. **Chains are the game.** K=3 produces 4.32 chains a game and 99.0% of games contain one; K=4
+   gives 1.99 and 90.5%. The chain is what people remember about Fawanees, and halving how often
+   it happens is a bigger loss than the dynamics numbers are a gain.
+2. **Everything built so far rests on K=3.** The two verified examples in CLAUDE.md, the tutorial's
+   capture and protection lessons, the rules text in both languages, and the published single file
+   all encode "three lanterns". Changing the threshold invalidates all of it at once.
+3. **The balance target is already met.** The first player is at 48.7% ± 1.7 under the swap rule,
+   inside the 45–55% band. The rule change was only ever being considered for the second target.
+
+What is given up by not changing: games stay lopsided. The average final margin is 44.9 points, and
+the last lead change stays at 37.4% rather than 45.4%. That is a real cost and it is not being
+denied; it is being traded for the chains.
+
+### K=4 as a candidate for a future version
+
+If a later version is willing to reopen the rules, K=4 is the strongest candidate measured. It
+moves the last lead change to 45.4%, lifts comebacks from 21.3% to 25.0%, and nearly halves the
+average margin to 24.0, while keeping a chain in 90.5% of games and a largest-ever chain of 6
+against K=3's 7. K=3 with M=2 is not a candidate: it is worse than K=4 on both axes at once.
+
+Two things must be measured before any such switch, neither of which has been done.
+
+**The edge fortress. This is the serious one.** A lantern can only be seen along a line that has a
+cell on it, and cells near the rim of the board do not have six. On the radius-5 board:
+
+| usable lines | cells |
+|---|---|
+| 3 (the six corners) | 6 |
+| 4 (the rest of the rim) | 24 |
+| 6 (the interior) | 61 |
+
+Under K=3 every one of the 91 cells can be captured. **Under K=4 the six corner cells cannot be
+captured at all** — three attackers is the most that can ever see them — and the 24 other rim cells
+would need all four of their lines held by attackers with no defender on any of them. So K=4 does
+not merely make capture harder; it creates permanently safe squares, and a strategy of parking
+lanterns on the rim may dominate. Nothing in the games measured above would necessarily reveal
+this: the openings were chosen for balance, not to probe the rim, and a depth-3 search is unlikely
+to find a fortress strategy on its own.
+
+This must be measured before K=4 is taken seriously: how often a rim lantern survives to the end of
+the game under each rule, and whether an engine told to prefer rim cells beats one that is not.
+
+**A full K=4 opening study.** The 40.6% in the table is a floor, not K=4's balance. Its openings
+came from a study of one cell per symmetry class, 90 games each, about ±10 points, and all three
+chosen happened to favour the opener. A full study — 8,190 games, roughly fifteen minutes — is
+needed before the balance column means anything.
