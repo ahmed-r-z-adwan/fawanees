@@ -128,10 +128,12 @@ window.FawaneesPuzzles = {
   games: ${games},
   positionsScanned: ${positions},
   candidates: ${all.length},
+  // the depth the margin was measured at, and the deeper one it was re-checked at
+  mineDepth: ${DEEP},
   verifyDepth: ${VERIFY_DEPTH},
   list: [
 ${chosen.map(c => `    { board: '${pack(c.board)}', side: ${c.side}, hands: [0, ${c.hands[1]}, ${c.hands[2]}], answer: '${name(c.answer)}',` +
-                  ` flips: ${c.flips}, margin: ${c.margin}, difficulty: ${c.difficulty}, swing: ${c.swing},` +
+                  ` flips: ${c.flips}, margin: ${c.margin}, verifyMargin: ${c.verifyMargin}, difficulty: ${c.difficulty}, swing: ${c.swing},` +
                   ` waves: ${JSON.stringify(c.waves.map(w => w.map(name)))} },`).join('\n')}
   ],
 };

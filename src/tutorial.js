@@ -19,6 +19,7 @@ let animToken = 0;   // moving to another lesson must abandon a chain that is st
       title: 'تعلّم اللعب',
       of: (a, b) => `الدرس ${a} من ${b}`,
       next: 'الدرس التالي', back: 'السابق', close: 'إغلاق', retry: 'أعد المحاولة', finish: 'ابدأ اللعب',
+      play: 'ضع الفانوس في الخانة المعلّمة',
       tapTarget: 'اضغط الخانة المعلّمة',
       wrongCell: 'ليست هذه. اضغط الخانة المعلّمة ذات الحلقة المتقطّعة.',
       goldName: 'الذهبي', turqName: 'الفيروزي',
@@ -91,6 +92,7 @@ let animToken = 0;   // moving to another lesson must abandon a chain that is st
       title: 'Learn to play',
       of: (a, b) => `Lesson ${a} of ${b}`,
       next: 'Next lesson', back: 'Back', close: 'Close', retry: 'Try again', finish: 'Start playing',
+      play: 'Place the lantern on the marked cell',
       tapTarget: 'Tap the marked cell',
       wrongCell: 'Not that one. Tap the marked cell with the dashed ring.',
       goldName: 'Gold', turqName: 'Turquoise',
@@ -210,7 +212,7 @@ let animToken = 0;   // moving to another lesson must abandon a chain that is st
     // the cell the player has to play
     if (stage === 'task') {
       const [x, y] = pos(m.target);
-      const pulse = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 520));
+      const pulse = reduceMotion ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 520));
       c2.save();
       c2.setLineDash([size * 0.22, size * 0.16]);
       c2.strokeStyle = `rgba(255,226,160,${(0.45 + 0.55 * pulse).toFixed(2)})`;
@@ -241,7 +243,7 @@ let animToken = 0;   // moving to another lesson must abandon a chain that is st
   function loop() {
     if (!dlg.open) return;
     paint();
-    if (stage === 'task' || anim) requestAnimationFrame(loop);
+    if (anim || (stage === 'task' && !reduceMotion)) requestAnimationFrame(loop);
   }
 
   function load(i) {
@@ -270,6 +272,10 @@ let animToken = 0;   // moving to another lesson must abandon a chain that is st
     }
     document.getElementById('learnBack').disabled = step === 0;
     document.getElementById('learnBack').textContent = T.back;
+    // The board is a canvas, so this button is the keyboard route through the lesson.
+    const play = document.getElementById('learnPlay');
+    play.hidden = stage !== 'task';
+    play.textContent = T.play;
     const next = document.getElementById('learnNext');
     next.hidden = stage === 'task';
     next.textContent = step === LS.LESSONS.length - 1 ? T.finish : T.next;
@@ -324,6 +330,7 @@ let animToken = 0;   // moving to another lesson must abandon a chain that is st
     load(step + 1);
   };
   document.getElementById('learnBack').onclick = () => load(step - 1);
+  document.getElementById('learnPlay').onclick = () => playTarget();
   window.addEventListener('resize', () => { if (dlg.open) { layout(); paint(); } });
 
   return {

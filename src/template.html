@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#15112a">
 <!--PWA-HEAD-->
 <title>فوانيس</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2315112a"/><circle cx="32" cy="35" r="21" fill="%23f2b447" opacity=".22"/><rect x="29.5" y="3" width="5" height="7" fill="%23f2b447"/><path d="M32 8l7 9H25z" fill="%23f2b447"/><path d="M22 18h20l4 14-4 16H22l-4-16z" fill="%23ffe9b8" stroke="%23f2b447" stroke-width="3" stroke-linejoin="round"/><rect x="19" y="48" width="26" height="5" rx="2" fill="%23f2b447"/></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%2315112a%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2235%22%20r%3D%2221%22%20fill%3D%22%23f2b447%22%20opacity%3D%22.22%22%2F%3E%3Crect%20x%3D%2229.5%22%20y%3D%223%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%23f2b447%22%2F%3E%3Cpath%20d%3D%22M32%208l7%209H25z%22%20fill%3D%22%23f2b447%22%2F%3E%3Cpath%20d%3D%22M22%2018h20l4%2014-4%2016H22l-4-16z%22%20fill%3D%22%23ffe9b8%22%20stroke%3D%22%23f2b447%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%3Crect%20x%3D%2219%22%20y%3D%2248%22%20width%3D%2226%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23f2b447%22%2F%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
@@ -144,7 +144,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       </div>
     </aside>
   </main>
-  <footer><span data-i18n="credit">صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة: أحمد عدوان.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
+  <footer><span data-i18n="credit">صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة والنشر: أحمد عدوان.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
 </div>
 
 <dialog id="dlgNew">
@@ -188,6 +188,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       <div class="learn-hint" id="learnHint"></div>
       <div class="dialog-actions">
         <button class="btn" id="learnBack">السابق</button>
+        <button class="btn" id="learnPlay">ضع الفانوس</button>
         <button class="btn primary" id="learnNext" hidden>الدرس التالي</button>
       </div>
     </div>
@@ -284,11 +285,12 @@ const T = {
   ar: {
     title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
     showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
-    credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة: أحمد عدوان.', how: 'كيف صُنعت؟',
+    credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة والنشر: أحمد عدوان.', how: 'كيف صُنعت؟',
     mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على جهاز واحد', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
     lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
     gotIt: 'فهمت', close: 'إغلاق', again: 'العب مرة أخرى',
     gold: 'الذهبي', turq: 'الفيروزي', you: 'أنت', machine: 'الآلة', player: 'اللاعب',
+    boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
     yourTurn: 'دورك: اضغط خانة لترى أثرها، ثم اضغطها مرة ثانية', turnOf: n => `دور ${n}`, thinking: 'الآلة تفكّر…',
@@ -328,11 +330,12 @@ const T = {
   en: {
     title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
     showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
-    credit: 'Rules, balancing and AI by Claude (Anthropic). Idea by Ahmed Adwan.', how: 'How was it made?',
+    credit: 'Rules, balancing and AI by Claude (Anthropic). Idea and publishing by Ahmed Adwan.', how: 'How was it made?',
     mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players, one device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
     lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
     gotIt: 'Got it', close: 'Close', again: 'Play again',
     gold: 'Gold', turq: 'Turquoise', you: 'You', machine: 'Machine', player: 'Player',
+    boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `The win-chance meter is fitted on ${g} self-play games. Log loss went from ${before} to ${after}.`,
     yourTurn: 'Your turn: tap a cell to preview it, then tap it again', turnOf: n => `${n} to move`, thinking: 'The machine is thinking…',
@@ -377,6 +380,7 @@ function applyLang() {
   document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.title = t('title');
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.getElementById('board').setAttribute('aria-label', t('boardLabel'));
   document.getElementById('btnLang').textContent = lang === 'ar' ? 'EN' : 'عربي';
   document.getElementById('rulesBody').innerHTML = t('rulesHtml');
   document.getElementById('howBody').innerHTML = t('howHtml');
@@ -389,6 +393,7 @@ function applyLang() {
 let game, cfg = { mode: 'ai', level: 2, human: 1 };
 let selected = -1, busy = false, lastInfo = null, plan = [], prediction = null, predStats = { hit: 0, total: 0 }, revealCell = -1;
 let anim = null, biggestChain = 0, swapUsed = false, openingCell = -1, cursor = -1, demoTimer = null;
+let animToken = 0;            // a superseded move animation must stop, not race the new one
 let live = null;              // latest streamed search depth, drawn on the board while the AI thinks
 let evalInfo = null;          // latest evaluation of the position, whatever search produced it
 let generation = 0;           // bumped whenever the position is reset, to drop stale search results
@@ -521,6 +526,8 @@ const AI = (function () {
 
 function abortThinking() {
   generation++;
+  animToken++;                 // any move animation still running belongs to the old position
+  anim = null;
   if (currentThink) { currentThink.cancel(); currentThink = null; }
   live = null;
 }
@@ -776,6 +783,7 @@ function toast(msg) { const el = document.getElementById('toast'); el.textConten
 function playMove(j, after) {
   const p = game.toMove;
   const rec = game.play(j);
+  if (!rec) { busy = false; updatePanel(); draw(); return after && after(null); }
   if (j === -1) { toast(t('passed', cfg.mode === 'ai' ? nameOf(p) : t(p === 1 ? 'gold' : 'turq'))); updatePanel(); draw(); return after && after(rec); }
   if (game.history.length === 1) openingCell = j;
   const flipsTotal = rec.waves.reduce((s, w) => s + w.length, 0);
@@ -787,7 +795,11 @@ function playMove(j, after) {
   anim = { board: board0, placed: j, t0, flipAt };
   const total = reduceMotion ? 0 : 300 + rec.waves.length * waveDelay + 250;
   if (flipsTotal >= 2) setTimeout(() => toast(t('chain', flipsTotal)), reduceMotion ? 0 : 300);
+  // If a newer animation or a new game has started, this loop is stale: stop, and do not touch
+  // `anim` or call `after`, or two chains end up driving the same game.
+  const token = ++animToken, gen = generation;
   const step = () => {
+    if (token !== animToken || gen !== generation) return;
     const now = performance.now();
     rec.waves.forEach((w, k) => { if (now >= t0 + 300 + k * waveDelay) w.forEach(i => { anim.board[i] = p; }); });
     draw();
@@ -801,7 +813,7 @@ function nextTurn() {
   updatePanel(); draw();
   if (game.over) return showOver();
   const p = game.toMove;
-  if (!game.canPlace(p) && !isHuman(p)) { busy = false; return playMove(-1, () => setTimeout(nextTurn, 350)); }
+  if (!game.canPlace(p) && !isHuman(p)) { return playMove(-1, () => setTimeout(nextTurn, 350)); }
   if (isHuman(p)) {
     busy = false; updatePanel();
     if (!swapUsed && game.canSwap()) toast(t('swapOffer'));
@@ -828,13 +840,13 @@ function machineMove(p) {
   // Opening: the first lantern comes from the measured opening policy, not from search.
   if (game.history.length === 0) {
     const j = OPENING.pickOpening(geo);
-    plan = []; lastInfo = null; evalInfo = null; live = null; busy = false;
-    return playMove(j, () => setTimeout(nextTurn, 300));
+    plan = []; lastInfo = null; evalInfo = null; live = null;
+    return playMove(j, () => setTimeout(nextTurn, 300));   // nextTurn clears busy
   }
   // Swap decision as the second player.
   if (!swapUsed && game.canSwap()) {
     swapUsed = true;
-    if (OPENING.shouldSwap(game.history[0].move, geo)) { doSwap(); busy = false; toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
+    if (OPENING.shouldSwap(game.history[0].move, geo)) { doSwap(); toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
     if (cfg.mode === 'ai') toast(t('aiNoSwap'));
   }
   live = null;
@@ -852,7 +864,7 @@ function machineMove(p) {
     lastInfo = { value: res.value, depth: res.depth, nodes: res.nodes, ms: res.ms, side: p };
     noteEval(res);
     plan = (res.pv || []).slice(1, 5);
-    live = null; busy = false;
+    live = null;
     playMove(move, () => setTimeout(nextTurn, cfg.mode === 'demo' ? 700 : 150));
   });
 }
@@ -883,6 +895,7 @@ function makePrediction() {
 
 function humanPlay(j) {
   if (busy || game.over || !isHuman(game.toMove)) return;
+  if (game.hands[game.toMove] <= 0) return;
   if (currentThink) { currentThink.cancel(); currentThink = null; }
   selected = -1;
   const p = game.toMove;
@@ -894,7 +907,7 @@ function humanPlay(j) {
   }
   prediction = null;
   busy = true;
-  playMove(j, () => { busy = false; updatePanel(msg); if (msg) toast(msg); setTimeout(nextTurn, 250); });
+  playMove(j, () => { updatePanel(msg); if (msg) toast(msg); setTimeout(nextTurn, 250); });   // nextTurn clears busy
 }
 
 function showOver() {
@@ -939,9 +952,15 @@ document.getElementById('btnSwap').onclick = () => { if (!isHuman(game.toMove)) 
 document.getElementById('btnHint').onclick = () => {
   if (busy || !isHuman(game.toMove)) return;
   const btn = document.getElementById('btnHint'); btn.disabled = true;
-  think(game.toMove, HINT_MS, 64, (m) => { live = { ...m, hint: true }; draw(); }).promise.then(res => {
+  // Tie the answer to the position it was asked about. Without this, a hint asked for and then
+  // moved past still arrives and pre-selects a cell, and the next tap plays it.
+  const askedAt = game.history.length;
+  const handle = think(game.toMove, HINT_MS, 64, (m) => { if (game.history.length === askedAt) { live = { ...m, hint: true }; draw(); } });
+  currentThink = handle;
+  handle.promise.then(res => {
+    if (currentThink === handle) currentThink = null;
     live = null; btn.disabled = false;
-    if (!res) return draw();
+    if (!res || game.history.length !== askedAt || busy || !isHuman(game.toMove)) return draw();
     if (res.move >= 0) { selected = res.move; cursor = res.move; draw(); toast(t('confirmHint')); }
     else { draw(); toast(t('pass')); }
   });
@@ -954,6 +973,9 @@ document.getElementById('btnUndo').onclick = () => {
   undoOne();
   if (cfg.mode === 'ai') { while (game.history.length && !isHuman(game.toMove)) undoOne(); }
   swapUsed = game.history.some(h => h.swap) || game.history.length > 1;
+  // these describe moves that no longer exist
+  biggestChain = game.history.reduce((m, h) => Math.max(m, (h.waves || []).reduce((a, w) => a + w.length, 0)), 0);
+  predStats = { hit: 0, total: 0 };
   updatePanel(); draw();
   if (!isHuman(game.toMove)) setTimeout(nextTurn, 200);
 };

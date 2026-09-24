@@ -68,15 +68,17 @@ met, so the page spends its whole budget. The code is kept and documented, off u
 ## Engine speed
 
 The search keeps its light maps incrementally rather than recomputing them at every node. Same
-positions, same depths, identical node counts (`sim/bench.js`):
+positions, same depths, identical node counts. These are the figures in
+`docs/measurements/bench-baseline.json` and `bench-after-incremental.json`; re-running
+`sim/bench.js` moves them by a per cent or two:
 
 | depth | before | after | per position |
 |---|---|---|---|
-| 3 | 275k nodes/s | 778k nodes/s | 30.5 ms → 10.8 ms |
-| 4 | 283k | 758k | 93.3 ms → 34.8 ms |
-| 5 | 281k | 918k | 2149.6 ms → 657.8 ms |
-| 6 | 302k | 713k | 8769.1 ms → 3719.5 ms |
-| a whole self-play game at depth 3 | 1.243 s | 0.358 s | 3.5x |
+| 3 | 271k nodes/s | 770k nodes/s | 30.9 ms → 10.9 ms |
+| 4 | 276k nodes/s | 772k nodes/s | 95.5 ms → 34.1 ms |
+| 5 | 279k nodes/s | 899k nodes/s | 2163.9 ms → 671.9 ms |
+| 6 | 304k nodes/s | 698k nodes/s | 8713.7 ms → 3797.3 ms |
+| a whole self-play game at depth 3 | 1.233 s | 0.346 s | 3.6x |
 
 That is what lets Master reach depth 4 on a phone inside a second, and it is what made the balance
 and calibration studies affordable.

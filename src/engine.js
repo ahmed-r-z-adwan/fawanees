@@ -222,6 +222,9 @@
     // j = -1 means pass. Two passes in a row end the game.
     play(j) {
       const p = this.toMove;
+      // A placement with an empty supply used to go through and drive hands negative. isLegal()
+      // would have caught it but nothing called it, and the page only checked whose turn it was.
+      if (j >= 0 && this.hands[p] <= 0) return null;
       const before = this.board.slice();
       const rec = { before, player: p, move: j, waves: [], passed: j < 0, prevLastPass: !!this.lastPass, handsBefore: this.hands.slice() };
       if (j >= 0) { rec.waves = applyMove(this.geo, this.board, p, j, this.rules, this.sc, true); this.hands[p]--; }

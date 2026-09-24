@@ -184,11 +184,11 @@ node. Identical node counts, same positions and depths (`sim/bench.js`):
 
 | depth | before | after |
 |---|---|---|
-| 3 | 275k nodes/s | **778k** |
-| 4 | 283k | **758k** |
-| 5 | 281k | **918k** |
-| 6 | 302k | **713k** |
-| self-play game at depth 3 | 1.243 s | **0.358 s** |
+| 3 | 271k nodes/s | **770k** |
+| 4 | 276k nodes/s | **772k** |
+| 5 | 279k nodes/s | **899k** |
+| 6 | 304k nodes/s | **698k** |
+| self-play game at depth 3 | 1.233 s | **0.346 s** |
 
 Correctness: `test/unit/incremental.test.js` fuzzes the incremental maps against a full recompute
 over four board and range combinations and several thousand placements, comparing the light maps,

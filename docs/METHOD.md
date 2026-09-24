@@ -55,8 +55,12 @@ own long-task entries plus a `requestAnimationFrame` counter, which is how the c
 not freeze" is checked rather than asserted.
 
 `test/tools/perf.js` does the same under CPU throttling through the Chrome DevTools Protocol, the
-usual stand-in for a mid-range phone. Throttling applies to the renderer, and a dedicated worker
-lives in the renderer, so the worker is slowed too.
+usual stand-in for a mid-range phone -- with one catch that invalidated the first attempt at this
+measurement. Chrome refuses to throttle a worker target: `Operation is only supported for pages, not
+workers`. So with the search on a worker, the throttling reaches the page and leaves the search at
+full speed. The honest phone figure is the main-thread fallback under throttling, which is also the
+slower path. Every timing table prints nodes a second so it is visible which of the two you got.
+See [SPEED.md](SPEED.md).
 
 ## Files
 

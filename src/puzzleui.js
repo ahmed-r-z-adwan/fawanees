@@ -25,7 +25,7 @@ const Puzzles = (function () {
       result: (flips, waves, swing, margin) => [
         `${flips} فوانيس انقلبت، في ${waves === 1 ? 'موجة واحدة' : waves + ' موجات'}.`,
         `الموقف تحرّك ${swing} نقطة لصالحك في حركة واحدة.`,
-        `أقرب حركة أخرى أسوأ بـ${margin} نقطة، بحساب بحث عمق ${DATA.verifyDepth}.`,
+        `أقرب حركة أخرى أسوأ بـ${margin} نقطة، بحساب بحث عمق ${DATA.mineDepth || 4}.`,
       ],
       next: 'اللغز التالي', back: 'السابق', close: 'إغلاق', hint: 'تلميح', giveUp: 'أرني الحل',
       hintText: n => `الحل يقلب ${n} من فوانيس الخصم.`,
@@ -44,7 +44,7 @@ const Puzzles = (function () {
       result: (flips, waves, swing, margin) => [
         `${flips} lanterns switched, in ${waves === 1 ? 'one wave' : waves + ' waves'}.`,
         `The position moved ${swing} points your way in a single move.`,
-        `The next best move is ${margin} points worse, at search depth ${DATA.verifyDepth}.`,
+        `The next best move is ${margin} points worse, at search depth ${DATA.mineDepth || 4}.`,
       ],
       next: 'Next puzzle', back: 'Back', close: 'Close', hint: 'Hint', giveUp: 'Show me',
       hintText: n => `The answer flips ${n} enemy lanterns.`,
@@ -97,7 +97,7 @@ const Puzzles = (function () {
     paintBeams(c2, geoP, pos, size, board);
     if (hinted && stage === 'task') {
       const [x, y] = pos(cellOf(pz.answer));
-      const pulse = 0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 500));
+      const pulse = reduceMotion ? 1 : 0.5 + 0.5 * Math.abs(Math.sin(performance.now() / 500));
       c2.save(); c2.setLineDash([size * 0.22, size * 0.16]);
       c2.strokeStyle = `rgba(255,226,160,${(0.35 + 0.5 * pulse).toFixed(2)})`;
       c2.lineWidth = Math.max(2, size * 0.1);
@@ -112,7 +112,7 @@ const Puzzles = (function () {
       if (flips && flips.has(i)) { c2.strokeStyle = '#ffffff'; c2.lineWidth = Math.max(1.5, size * 0.08); c2.beginPath(); c2.arc(x, y, size * 0.72, 0, Math.PI * 2); c2.stroke(); }
     }
   }
-  function loop() { if (!dlg.open) return; paint(); if (anim || (hinted && stage === 'task')) requestAnimationFrame(loop); }
+  function loop() { if (!dlg.open) return; paint(); if (anim || (hinted && stage === 'task' && !reduceMotion)) requestAnimationFrame(loop); }
 
   function load(i) {
     idx = Math.max(0, Math.min(DATA.list.length - 1, i));

@@ -1,7 +1,7 @@
 // Service worker for the installable copy. The whole game is one HTML file, so "offline" means
 // keeping that file, the manifest and the icons; the fonts are picked up the first time they load.
 // VERSION is rewritten by build.py from a hash of the page, so a new build replaces the old cache.
-const VERSION = '873ab0471dbc';
+const VERSION = '7fd51bc6bd76';
 const SHELL = `fawanees-${VERSION}`;
 const FONTS = 'fawanees-fonts';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest',
@@ -14,7 +14,11 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
-    for (const key of await caches.keys()) if (key !== SHELL && key !== FONTS) await caches.delete(key);
+    // Only ever touch our own caches: on a user.github.io domain this origin is shared with
+    // every other project the same person publishes.
+    for (const key of await caches.keys()) {
+      if (key.startsWith('fawanees-') && key !== SHELL && key !== FONTS) await caches.delete(key);
+    }
     await self.clients.claim();
   })());
 });

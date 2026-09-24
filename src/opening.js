@@ -16,8 +16,13 @@ window.FawaneesOpening = {
   noSwapBest: 0.6130,
   noSwapAverage: 0.5380,
   noSwapCentre: 0.3556,
-  // What they get once the second player may take it.
-  openerWinRate: 0.4963,
+  // What they get once the second player may take it. bestOpeningUnderSwapRule is the single best
+  // opening from the study; openerWinRate is the whole policy played out, which is what a player
+  // actually meets.
+  bestOpeningUnderSwapRule: 0.4963,
+  openerWinRate: 0.4870,
+  openerWinRateHalfWidthPlayed: 0.0172,
+  playedGames: 3240,
   openerWinRateHalfWidth: 0.0499,
   // Openings within two points of the best, which is finer than the study can resolve.
   open: ["-1,-1","-1,-2","-1,2","-1,3","-2,-1","-2,-2","-2,0","-2,1","-2,2","-2,3","-2,4","-3,0","-3,1","-3,2","-3,3","-4,2","0,-2","0,-3","0,2","0,3","1,-2","1,-3","1,1","1,2","2,-1","2,-2","2,-3","2,-4","2,0","2,1","2,2","3,-1","3,-2","3,-3","3,0","4,-2"],
