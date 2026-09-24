@@ -1,0 +1,1940 @@
+{
+ "what": "Opener win rate for every opening cell, with and without the second player taking the opening lantern.",
+ "how": "node sim/openingMatrix.js --depth 3",
+ "rules": {
+  "K": 3,
+  "restrict": false,
+  "supply": 24,
+  "range": 2,
+  "radius": 5
+ },
+ "setup": "Both sides search to depth 3. The opening cell is fixed and the second player either answers it or takes it; then every one of the 90 possible replies is played out in turn, and both sides search from there on. Exactly one move per side is unsearched, which is what keeps the two players comparable. \"Opener\" always means the player who chose the opening cell, even after it is taken from them.",
+ "date": "2026-09-24",
+ "totalGames": 16380,
+ "seconds": 1701,
+ "threads": 12,
+ "balance": {
+  "bestOpening": {
+   "q": -3,
+   "r": 0,
+   "ring": 3
+  },
+  "openerWinRate": 0.4962962962962963,
+  "ci": [
+   0.454301096901499,
+   0.5383438183864451
+  ],
+  "lastLeadChangeAvg": 0.37288077551745674
+ },
+ "orbits": [
+  {
+   "rep": 15,
+   "q": -3,
+   "r": 0,
+   "ring": 3,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.4962962962962963,
+    "ci": [
+     0.454301096901499,
+     0.5383438183864451
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.5,
+    "ci": [
+     0.45797749450457265,
+     0.5420225054954274
+    ]
+   },
+   "responderShouldSwap": false,
+   "openerWinRateUnderSwapRule": 0.4962962962962963,
+   "turnsAvg": 48.47222222222222,
+   "lastLeadChangeAvg": 0.37288077551745674,
+   "comebackRate": 0.22407407407407406,
+   "marginAvg": 46.138888888888886,
+   "cappedGames": 0
+  },
+  {
+   "rep": 9,
+   "q": -4,
+   "r": 2,
+   "ring": 4,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.5055555555555555,
+    "ci": [
+     0.46349638377661795,
+     0.5475362432914659
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.4925925925925926,
+    "ci": [
+     0.4506269889914626,
+     0.5346628415844256
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.4925925925925926,
+   "turnsAvg": 48.464814814814815,
+   "lastLeadChangeAvg": 0.3686404622723794,
+   "comebackRate": 0.18888888888888888,
+   "marginAvg": 45.43518518518518,
+   "cappedGames": 0
+  },
+  {
+   "rep": 24,
+   "q": -2,
+   "r": 0,
+   "ring": 2,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.5037037037037037,
+    "ci": [
+     0.4616561816135549,
+     0.545698903098501
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.48518518518518516,
+    "ci": [
+     0.4432856448715261,
+     0.5272940162802502
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.48518518518518516,
+   "turnsAvg": 48.47222222222222,
+   "lastLeadChangeAvg": 0.3765298758195162,
+   "comebackRate": 0.20277777777777778,
+   "marginAvg": 44.3537037037037,
+   "cappedGames": 0
+  },
+  {
+   "rep": 16,
+   "q": -3,
+   "r": 1,
+   "ring": 3,
+   "cells": 12,
+   "noSwap": {
+    "games": 1080,
+    "openerWinRate": 0.5111111111111111,
+    "ci": [
+     0.48131204434675606,
+     0.5408314156614741
+    ]
+   },
+   "swap": {
+    "games": 1080,
+    "openerWinRate": 0.4842592592592593,
+    "ci": [
+     0.45456274092189214,
+     0.5140673573997815
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.4842592592592593,
+   "turnsAvg": 48.45092592592592,
+   "lastLeadChangeAvg": 0.3734414714664432,
+   "comebackRate": 0.2337962962962963,
+   "marginAvg": 43.87870370370371,
+   "cappedGames": 0
+  },
+  {
+   "rep": 25,
+   "q": -2,
+   "r": 1,
+   "ring": 2,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.5148148148148148,
+    "ci": [
+     0.4727059837197498,
+     0.5567143551284739
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.47962962962962963,
+    "ci": [
+     0.43778565413097487,
+     0.5217613799527178
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.47962962962962963,
+   "turnsAvg": 48.47592592592593,
+   "lastLeadChangeAvg": 0.35555860705196185,
+   "comebackRate": 0.21944444444444444,
+   "marginAvg": 45.5787037037037,
+   "cappedGames": 0
+  },
+  {
+   "rep": 1,
+   "q": -5,
+   "r": 1,
+   "ring": 5,
+   "cells": 12,
+   "noSwap": {
+    "games": 1080,
+    "openerWinRate": 0.525,
+    "ci": [
+     0.49518148212547836,
+     0.5546413028930399
+    ]
+   },
+   "swap": {
+    "games": 1080,
+    "openerWinRate": 0.475,
+    "ci": [
+     0.4453586971069601,
+     0.5048185178745216
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.475,
+   "turnsAvg": 48.452777777777776,
+   "lastLeadChangeAvg": 0.3958227065944582,
+   "comebackRate": 0.21805555555555556,
+   "marginAvg": 45.61851851851852,
+   "cappedGames": 0
+  },
+  {
+   "rep": 8,
+   "q": -4,
+   "r": 1,
+   "ring": 4,
+   "cells": 12,
+   "noSwap": {
+    "games": 1080,
+    "openerWinRate": 0.5435185185185185,
+    "ci": [
+     0.5137098278566196,
+     0.5730187238422825
+    ]
+   },
+   "swap": {
+    "games": 1080,
+    "openerWinRate": 0.45092592592592595,
+    "ci": [
+     0.4214760587790834,
+     0.48072365951789936
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.45092592592592595,
+   "turnsAvg": 48.46944444444444,
+   "lastLeadChangeAvg": 0.36975578971738415,
+   "comebackRate": 0.2175925925925926,
+   "marginAvg": 45.36388888888889,
+   "cappedGames": 0
+  },
+  {
+   "rep": 34,
+   "q": -1,
+   "r": 0,
+   "ring": 1,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.5574074074074075,
+    "ci": [
+     0.5152553300797985,
+     0.5987484829570681
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.44074074074074077,
+    "ci": [
+     0.3994308985939742,
+     0.48288774601313145
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.44074074074074077,
+   "turnsAvg": 48.44074074074074,
+   "lastLeadChangeAvg": 0.353707579485695,
+   "comebackRate": 0.19722222222222222,
+   "marginAvg": 49.19166666666667,
+   "cappedGames": 0
+  },
+  {
+   "rep": 2,
+   "q": -5,
+   "r": 2,
+   "ring": 5,
+   "cells": 12,
+   "noSwap": {
+    "games": 1080,
+    "openerWinRate": 0.5796296296296296,
+    "ci": [
+     0.5499589552150304,
+     0.6087358415106203
+    ]
+   },
+   "swap": {
+    "games": 1080,
+    "openerWinRate": 0.41759259259259257,
+    "ci": [
+     0.38852328385892676,
+     0.44724605441336485
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.41759259259259257,
+   "turnsAvg": 48.455555555555556,
+   "lastLeadChangeAvg": 0.3509480706191066,
+   "comebackRate": 0.19305555555555556,
+   "marginAvg": 46.60138888888889,
+   "cappedGames": 0
+  },
+  {
+   "rep": 7,
+   "q": -4,
+   "r": 0,
+   "ring": 4,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.5907407407407408,
+    "ci": [
+     0.5487701223811149,
+     0.6314294530642549
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.40185185185185185,
+    "ci": [
+     0.3613343538294872,
+     0.4437559013010314
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.40185185185185185,
+   "turnsAvg": 48.464814814814815,
+   "lastLeadChangeAvg": 0.38758793079879705,
+   "comebackRate": 0.26481481481481484,
+   "marginAvg": 43.846296296296295,
+   "cappedGames": 0
+  },
+  {
+   "rep": 0,
+   "q": -5,
+   "r": 0,
+   "ring": 5,
+   "cells": 6,
+   "noSwap": {
+    "games": 540,
+    "openerWinRate": 0.6129629629629629,
+    "ci": [
+     0.571221274151537,
+     0.6531088095661681
+    ]
+   },
+   "swap": {
+    "games": 540,
+    "openerWinRate": 0.38333333333333336,
+    "ci": [
+     0.3432865566396088,
+     0.4250282749306303
+    ]
+   },
+   "responderShouldSwap": true,
+   "openerWinRateUnderSwapRule": 0.38333333333333336,
+   "turnsAvg": 48.44259259259259,
+   "lastLeadChangeAvg": 0.3586459444889067,
+   "comebackRate": 0.17592592592592593,
+   "marginAvg": 49.05740740740741,
+   "cappedGames": 0
+  },
+  {
+   "rep": 45,
+   "q": 0,
+   "r": 0,
+   "ring": 0,
+   "cells": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "ci": [
+     0.26443868894919004,
+     0.4584982697260955
+    ]
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "ci": [
+     0.5415017302739045,
+     0.7355613110508099
+    ]
+   },
+   "responderShouldSwap": false,
+   "openerWinRateUnderSwapRule": 0.35555555555555557,
+   "turnsAvg": 48.477777777777774,
+   "lastLeadChangeAvg": 0.338456996510188,
+   "comebackRate": 0.13333333333333333,
+   "marginAvg": 54.93333333333333,
+   "cappedGames": 0
+  }
+ ],
+ "cells": [
+  {
+   "cell": 0,
+   "q": -5,
+   "r": 0,
+   "ring": 5,
+   "orbit": 0,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6111111111111112,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3888888888888889,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 1,
+   "q": -5,
+   "r": 1,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 2,
+   "q": -5,
+   "r": 2,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6777777777777778,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.32222222222222224,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 3,
+   "q": -5,
+   "r": 3,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 4,
+   "q": -5,
+   "r": 4,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 5,
+   "q": -5,
+   "r": 5,
+   "ring": 5,
+   "orbit": 0,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.34444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 6,
+   "q": -4,
+   "r": -1,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6222222222222222,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.37777777777777777,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 7,
+   "q": -4,
+   "r": 0,
+   "ring": 4,
+   "orbit": 7,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6666666666666666,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 8,
+   "q": -4,
+   "r": 1,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6222222222222222,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.36666666666666664,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 9,
+   "q": -4,
+   "r": 2,
+   "ring": 4,
+   "orbit": 9,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 10,
+   "q": -4,
+   "r": 3,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4666666666666667,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 11,
+   "q": -4,
+   "r": 4,
+   "ring": 4,
+   "orbit": 7,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5888888888888889,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 12,
+   "q": -4,
+   "r": 5,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6666666666666666,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 13,
+   "q": -3,
+   "r": -2,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 14,
+   "q": -3,
+   "r": -1,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 15,
+   "q": -3,
+   "r": 0,
+   "ring": 3,
+   "orbit": 15,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 16,
+   "q": -3,
+   "r": 1,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 17,
+   "q": -3,
+   "r": 2,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 18,
+   "q": -3,
+   "r": 3,
+   "ring": 3,
+   "orbit": 15,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 19,
+   "q": -3,
+   "r": 4,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6333333333333333,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 20,
+   "q": -3,
+   "r": 5,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6666666666666666,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 21,
+   "q": -2,
+   "r": -3,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 22,
+   "q": -2,
+   "r": -2,
+   "ring": 4,
+   "orbit": 9,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.45555555555555555,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 23,
+   "q": -2,
+   "r": -1,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 24,
+   "q": -2,
+   "r": 0,
+   "ring": 2,
+   "orbit": 24,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 25,
+   "q": -2,
+   "r": 1,
+   "ring": 2,
+   "orbit": 25,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5333333333333333,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4666666666666667,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 26,
+   "q": -2,
+   "r": 2,
+   "ring": 2,
+   "orbit": 24,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4111111111111111,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 27,
+   "q": -2,
+   "r": 3,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5333333333333333,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4666666666666667,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 28,
+   "q": -2,
+   "r": 4,
+   "ring": 4,
+   "orbit": 9,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5111111111111111,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4888888888888889,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 29,
+   "q": -2,
+   "r": 5,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5888888888888889,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4111111111111111,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 30,
+   "q": -1,
+   "r": -4,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.36666666666666664,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 31,
+   "q": -1,
+   "r": -3,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0.022222222222222223
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.45555555555555555,
+    "draws": 0.022222222222222223
+   }
+  },
+  {
+   "cell": 32,
+   "q": -1,
+   "r": -2,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 33,
+   "q": -1,
+   "r": -1,
+   "ring": 2,
+   "orbit": 25,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4111111111111111,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 34,
+   "q": -1,
+   "r": 0,
+   "ring": 1,
+   "orbit": 34,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 35,
+   "q": -1,
+   "r": 1,
+   "ring": 1,
+   "orbit": 34,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 36,
+   "q": -1,
+   "r": 2,
+   "ring": 2,
+   "orbit": 25,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.37777777777777777,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6222222222222222,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 37,
+   "q": -1,
+   "r": 3,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.45555555555555555,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5333333333333333,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 38,
+   "q": -1,
+   "r": 4,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6333333333333333,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 39,
+   "q": -1,
+   "r": 5,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 40,
+   "q": 0,
+   "r": -5,
+   "ring": 5,
+   "orbit": 0,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.34444444444444444,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 41,
+   "q": 0,
+   "r": -4,
+   "ring": 4,
+   "orbit": 7,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 42,
+   "q": 0,
+   "r": -3,
+   "ring": 3,
+   "orbit": 15,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.3888888888888889,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6111111111111112,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 43,
+   "q": 0,
+   "r": -2,
+   "ring": 2,
+   "orbit": 24,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.45555555555555555,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 44,
+   "q": 0,
+   "r": -1,
+   "ring": 1,
+   "orbit": 34,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 45,
+   "q": 0,
+   "r": 0,
+   "ring": 0,
+   "orbit": 45,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 46,
+   "q": 0,
+   "r": 1,
+   "ring": 1,
+   "orbit": 34,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6666666666666666,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 47,
+   "q": 0,
+   "r": 2,
+   "ring": 2,
+   "orbit": 24,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 48,
+   "q": 0,
+   "r": 3,
+   "ring": 3,
+   "orbit": 15,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 49,
+   "q": 0,
+   "r": 4,
+   "ring": 4,
+   "orbit": 7,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5444444444444444,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 50,
+   "q": 0,
+   "r": 5,
+   "ring": 5,
+   "orbit": 0,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 51,
+   "q": 1,
+   "r": -5,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 52,
+   "q": 1,
+   "r": -4,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 53,
+   "q": 1,
+   "r": -3,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 54,
+   "q": 1,
+   "r": -2,
+   "ring": 2,
+   "orbit": 25,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 55,
+   "q": 1,
+   "r": -1,
+   "ring": 1,
+   "orbit": 34,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6222222222222222,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.37777777777777777,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 56,
+   "q": 1,
+   "r": 0,
+   "ring": 1,
+   "orbit": 34,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 57,
+   "q": 1,
+   "r": 1,
+   "ring": 2,
+   "orbit": 25,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5111111111111111,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 58,
+   "q": 1,
+   "r": 2,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5333333333333333,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4666666666666667,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 59,
+   "q": 1,
+   "r": 3,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 60,
+   "q": 1,
+   "r": 4,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 61,
+   "q": 2,
+   "r": -5,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3888888888888889,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 62,
+   "q": 2,
+   "r": -4,
+   "ring": 4,
+   "orbit": 9,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 63,
+   "q": 2,
+   "r": -3,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5333333333333333,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4666666666666667,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 64,
+   "q": 2,
+   "r": -2,
+   "ring": 2,
+   "orbit": 24,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0.022222222222222223
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.45555555555555555,
+    "draws": 0.022222222222222223
+   }
+  },
+  {
+   "cell": 65,
+   "q": 2,
+   "r": -1,
+   "ring": 2,
+   "orbit": 25,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6666666666666666,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.3333333333333333,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 66,
+   "q": 2,
+   "r": 0,
+   "ring": 2,
+   "orbit": 24,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0.022222222222222223
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0.022222222222222223
+   }
+  },
+  {
+   "cell": 67,
+   "q": 2,
+   "r": 1,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5444444444444444,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0.011111111111111112
+   }
+  },
+  {
+   "cell": 68,
+   "q": 2,
+   "r": 2,
+   "ring": 4,
+   "orbit": 9,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 69,
+   "q": 2,
+   "r": 3,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 70,
+   "q": 3,
+   "r": -5,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 71,
+   "q": 3,
+   "r": -4,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 72,
+   "q": 3,
+   "r": -3,
+   "ring": 3,
+   "orbit": 15,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5111111111111111,
+    "draws": 0.022222222222222223
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4666666666666667,
+    "draws": 0.022222222222222223
+   }
+  },
+  {
+   "cell": 73,
+   "q": 3,
+   "r": -2,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 74,
+   "q": 3,
+   "r": -1,
+   "ring": 3,
+   "orbit": 16,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5444444444444444,
+    "draws": 0.022222222222222223
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0.022222222222222223
+   }
+  },
+  {
+   "cell": 75,
+   "q": 3,
+   "r": 0,
+   "ring": 3,
+   "orbit": 15,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5888888888888889,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4111111111111111,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 76,
+   "q": 3,
+   "r": 1,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 77,
+   "q": 3,
+   "r": 2,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.34444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 78,
+   "q": 4,
+   "r": -5,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5777777777777777,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 79,
+   "q": 4,
+   "r": -4,
+   "ring": 4,
+   "orbit": 7,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0.022222222222222223
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0.022222222222222223
+   }
+  },
+  {
+   "cell": 80,
+   "q": 4,
+   "r": -3,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 81,
+   "q": 4,
+   "r": -2,
+   "ring": 4,
+   "orbit": 9,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 82,
+   "q": 4,
+   "r": -1,
+   "ring": 4,
+   "orbit": 8,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6333333333333333,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.36666666666666664,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 83,
+   "q": 4,
+   "r": 0,
+   "ring": 4,
+   "orbit": 7,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5444444444444444,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.45555555555555555,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 84,
+   "q": 4,
+   "r": 1,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5888888888888889,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4111111111111111,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 85,
+   "q": 5,
+   "r": -5,
+   "ring": 5,
+   "orbit": 0,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5555555555555556,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4444444444444444,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 86,
+   "q": 5,
+   "r": -4,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.5,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 87,
+   "q": 5,
+   "r": -3,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5222222222222223,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4777777777777778,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 88,
+   "q": 5,
+   "r": -2,
+   "ring": 5,
+   "orbit": 2,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.6444444444444445,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.35555555555555557,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 89,
+   "q": 5,
+   "r": -1,
+   "ring": 5,
+   "orbit": 1,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.43333333333333335,
+    "draws": 0
+   }
+  },
+  {
+   "cell": 90,
+   "q": 5,
+   "r": 0,
+   "ring": 5,
+   "orbit": 0,
+   "noSwap": {
+    "games": 90,
+    "openerWinRate": 0.5666666666666667,
+    "draws": 0.011111111111111112
+   },
+   "swap": {
+    "games": 90,
+    "openerWinRate": 0.4222222222222222,
+    "draws": 0.011111111111111112
+   }
+  }
+ ]
+}

@@ -14,9 +14,16 @@ function rng(seed) {
   return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
 }
 
-// One game. `opening` is a cell index, `swap` says whether the second player takes it.
-// `randomPlies` moves after the opening are random, to give the sample variety; after that both
-// sides search to `depth`. Returns the score curve so lead changes can be measured.
+// One game from a fixed opening and a fixed reply.
+//
+// Exactly one move per side is not searched: the opening cell, which the study is about, and the
+// reply, which the caller enumerates over every empty cell. Everything after that is searched by
+// both sides at `depth`. Getting that count equal matters more than it sounds: giving one side a
+// second unsearched move moves the measured win rate by something like fifteen points.
+//
+// After a swap the same holds -- the second player's first lantern is the one the opener chose,
+// and the opener's first lantern is the reply -- and the first searched move passes to the player
+// who took the lantern, which is exactly the tempo the swap rule is meant to transfer.
 // Each Engine owns a megabyte-scale transposition table and 80 ply buffers. Building two of them
 // per game cost more than the games did, so they are built once per worker and reset between
 // games -- reset, not reused, so a game still cannot see another game's search results.
@@ -30,7 +37,7 @@ function enginesFor(geo, rules, radius) {
   return pair;
 }
 
-function playOne({ opening, swap, depth1, depth2, randomPlies, rand, rules = RULES, radius = RADIUS, maxTurns = 220 }) {
+function playOne({ opening, swap, reply, depth1, depth2, rules = RULES, radius = RADIUS, maxTurns = 220 }) {
   const g = new F.Game(radius, rules);
   const eng = enginesFor(g.geo, rules, radius);
   const depth = [0, depth1, depth2];
@@ -41,14 +48,21 @@ function playOne({ opening, swap, depth1, depth2, randomPlies, rand, rules = RUL
   record();
   if (swap) { g.swapOpening(); record(); }
 
-  let rp = 0;
+  let capturingMoves = 0, cascades = 0, maxChain = 0, flipped = 0;
+  const note = (rec) => {
+    if (!rec || !rec.waves.length) return;
+    const n = rec.waves.reduce((a, w) => a + w.length, 0);
+    capturingMoves++; flipped += n;
+    if (rec.waves.length >= 2) cascades++;          // a chain: one switch set off another
+    if (n > maxChain) maxChain = n;
+  };
+
+  if (reply !== undefined && reply >= 0) { note(g.play(reply)); record(); }
+
   while (!g.over && g.history.length < maxTurns) {
     const p = g.toMove, L = g.legal();
-    let m;
-    if (!L.length) m = -1;
-    else if (rp < randomPlies) { m = L[Math.floor(rand() * L.length)]; rp++; }
-    else m = eng[p].search(g.board, p, { timeMs: 1e9, maxDepth: depth[p], prevPass: g.lastPass, hands: g.hands }).move;
-    g.play(m);
+    const m = L.length ? eng[p].search(g.board, p, { timeMs: 1e9, maxDepth: depth[p], prevPass: g.lastPass, hands: g.hands }).move : -1;
+    note(g.play(m));
     record();
   }
 
@@ -60,20 +74,32 @@ function playOne({ opening, swap, depth1, depth2, randomPlies, rand, rules = RUL
   return {
     openerWon: a > b ? 1 : 0, draw: a === b ? 1 : 0, margin: Math.abs(a - b),
     turns: diffs.length,
+    capturingMoves, cascades, maxChain, flipped,
     lastLeadChangeFrac: diffs.length ? lastChange / diffs.length : 0,
     comeback: (Math.sign(mid) && Math.sign(mid) !== Math.sign(a - b)) ? 1 : 0,
     capped: g.over ? 0 : 1,
   };
 }
 
+// A job is one opening, one branch, and a slice of the replies to enumerate. Empty cells are
+// listed in board order, so the slice is reproducible.
 function runJob(job) {
-  const rand = rng(job.seed);
-  const agg = { games: 0, openerWins: 0, draws: 0, margin: 0, turns: 0, lastLeadChangeFrac: 0, comebacks: 0, capped: 0 };
-  for (let i = 0; i < job.games; i++) {
-    const r = playOne({ ...job, rand });
+  const probe = new F.Game(job.radius || RADIUS, job.rules || RULES);
+  probe.play(job.opening);
+  if (job.swap) probe.swapOpening();
+  const replies = probe.legal();
+
+  const agg = { games: 0, openerWins: 0, draws: 0, margin: 0, turns: 0, lastLeadChangeFrac: 0, lastLeadChangeSq: 0,
+                comebacks: 0, capped: 0, capturingMoves: 0, cascades: 0, flipped: 0, maxChainSum: 0, maxChainEver: 0, replies: replies.length };
+  const to = Math.min(job.replyTo ?? replies.length, replies.length);
+  for (let i = job.replyFrom ?? 0; i < to; i++) {
+    const r = playOne({ ...job, reply: replies[i] });
     agg.games++;
     agg.openerWins += r.openerWon; agg.draws += r.draw; agg.margin += r.margin; agg.turns += r.turns;
-    agg.lastLeadChangeFrac += r.lastLeadChangeFrac; agg.comebacks += r.comeback; agg.capped += r.capped;
+    agg.lastLeadChangeFrac += r.lastLeadChangeFrac; agg.lastLeadChangeSq += r.lastLeadChangeFrac * r.lastLeadChangeFrac;
+    agg.comebacks += r.comeback; agg.capped += r.capped;
+    agg.capturingMoves += r.capturingMoves; agg.cascades += r.cascades; agg.flipped += r.flipped;
+    agg.maxChainSum += r.maxChain; if (r.maxChain > agg.maxChainEver) agg.maxChainEver = r.maxChain;
   }
   return { ...job, ...agg };
 }

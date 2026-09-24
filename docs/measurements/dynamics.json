@@ -1,0 +1,262 @@
+{
+ "what": "How games move under the current rules, and under candidate rule changes.",
+ "how": "node sim/dynamics.js --variants --depth 3",
+ "setup": "Openings -3,0, -2,0, -4,2; the second player does whatever is better for them; every reply enumerated; both sides search to depth 3.",
+ "metric": "\"last lead change\" is how far into the game the leader changed for the last time, averaged over games. A game decided early has a small number.",
+ "date": "2026-09-24",
+ "variants": [
+  {
+   "name": "current rules",
+   "radius": 5,
+   "rules": {
+    "K": 3,
+    "restrict": false,
+    "supply": 24,
+    "range": 2
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": false,
+   "answered": {
+    "games": 270,
+    "openerWinRate": 0.4925925925925926,
+    "drawRate": 0,
+    "lastLeadChange": 0.39241659429729336,
+    "comebackRate": 0.2037037037037037,
+    "marginAvg": 45.474074074074075,
+    "turnsAvg": 47.96666666666667,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 270,
+    "openerWinRate": 0.4925925925925926,
+    "drawRate": 0,
+    "lastLeadChange": 0.39241659429729336,
+    "comebackRate": 0.2037037037037037,
+    "marginAvg": 45.474074074074075,
+    "turnsAvg": 47.96666666666667,
+    "unfinished": 0
+   }
+  },
+  {
+   "name": "30 lanterns each",
+   "radius": 5,
+   "rules": {
+    "K": 3,
+    "restrict": false,
+    "supply": 30,
+    "range": 2
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": true,
+   "answered": {
+    "games": 270,
+    "openerWinRate": 0.5037037037037037,
+    "drawRate": 0.003703703703703704,
+    "lastLeadChange": 0.3477097033126486,
+    "comebackRate": 0.15555555555555556,
+    "marginAvg": 53.28888888888889,
+    "turnsAvg": 59.98518518518519,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 270,
+    "openerWinRate": 0.4925925925925926,
+    "drawRate": 0.003703703703703704,
+    "lastLeadChange": 0.35840713973271704,
+    "comebackRate": 0.15925925925925927,
+    "marginAvg": 53.28888888888889,
+    "turnsAvg": 60.98518518518519,
+    "unfinished": 0
+   }
+  },
+  {
+   "name": "36 lanterns each",
+   "radius": 5,
+   "rules": {
+    "K": 3,
+    "restrict": false,
+    "supply": 36,
+    "range": 2
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": true,
+   "answered": {
+    "games": 270,
+    "openerWinRate": 0.5148148148148148,
+    "drawRate": 0,
+    "lastLeadChange": 0.29499143091255126,
+    "comebackRate": 0.11851851851851852,
+    "marginAvg": 55.71851851851852,
+    "turnsAvg": 72,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 270,
+    "openerWinRate": 0.48518518518518516,
+    "drawRate": 0,
+    "lastLeadChange": 0.3046493411219438,
+    "comebackRate": 0.10740740740740741,
+    "marginAvg": 55.71851851851852,
+    "turnsAvg": 73,
+    "unfinished": 0
+   }
+  },
+  {
+   "name": "radius 6, 34 lanterns",
+   "radius": 6,
+   "rules": {
+    "K": 3,
+    "restrict": false,
+    "supply": 34,
+    "range": 2
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": true,
+   "answered": {
+    "games": 378,
+    "openerWinRate": 0.626984126984127,
+    "drawRate": 0,
+    "lastLeadChange": 0.3685180034952909,
+    "comebackRate": 0.18253968253968253,
+    "marginAvg": 60.20634920634921,
+    "turnsAvg": 67.95238095238095,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 378,
+    "openerWinRate": 0.37037037037037035,
+    "drawRate": 0,
+    "lastLeadChange": 0.37510820753422136,
+    "comebackRate": 0.1931216931216931,
+    "marginAvg": 60.23809523809524,
+    "turnsAvg": 68.95238095238095,
+    "unfinished": 0
+   }
+  },
+  {
+   "name": "capture needs 4 seers",
+   "radius": 5,
+   "rules": {
+    "K": 4,
+    "restrict": false,
+    "supply": 24,
+    "range": 2
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": false,
+   "answered": {
+    "games": 270,
+    "openerWinRate": 0.4222222222222222,
+    "drawRate": 0.025925925925925925,
+    "lastLeadChange": 0.4770254713390479,
+    "comebackRate": 0.29259259259259257,
+    "marginAvg": 23.496296296296297,
+    "turnsAvg": 47.98888888888889,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 270,
+    "openerWinRate": 0.4222222222222222,
+    "drawRate": 0.025925925925925925,
+    "lastLeadChange": 0.4770254713390479,
+    "comebackRate": 0.29259259259259257,
+    "marginAvg": 23.496296296296297,
+    "turnsAvg": 47.98888888888889,
+    "unfinished": 0
+   }
+  },
+  {
+   "name": "capture needs 2 more, not 1",
+   "radius": 5,
+   "rules": {
+    "K": 3,
+    "restrict": false,
+    "supply": 24,
+    "range": 2,
+    "M": 2
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": true,
+   "answered": {
+    "games": 270,
+    "openerWinRate": 0.5888888888888889,
+    "drawRate": 0,
+    "lastLeadChange": 0.3832872313622061,
+    "comebackRate": 0.18518518518518517,
+    "marginAvg": 35.35925925925926,
+    "turnsAvg": 47.94074074074074,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 270,
+    "openerWinRate": 0.4111111111111111,
+    "drawRate": 0,
+    "lastLeadChange": 0.3958883219954648,
+    "comebackRate": 0.1925925925925926,
+    "marginAvg": 35.35925925925926,
+    "turnsAvg": 48.94074074074074,
+    "unfinished": 0
+   }
+  },
+  {
+   "name": "light reaches 3 cells",
+   "radius": 5,
+   "rules": {
+    "K": 3,
+    "restrict": false,
+    "supply": 24,
+    "range": 3
+   },
+   "openings": [
+    "-3,0",
+    "-2,0",
+    "-4,2"
+   ],
+   "responderTakes": true,
+   "answered": {
+    "games": 270,
+    "openerWinRate": 0.5740740740740741,
+    "drawRate": 0,
+    "lastLeadChange": 0.27824868126919794,
+    "comebackRate": 0.11481481481481481,
+    "marginAvg": 69.65555555555555,
+    "turnsAvg": 47.977777777777774,
+    "unfinished": 0
+   },
+   "played": {
+    "games": 270,
+    "openerWinRate": 0.42592592592592593,
+    "drawRate": 0,
+    "lastLeadChange": 0.2929860166288738,
+    "comebackRate": 0.14444444444444443,
+    "marginAvg": 69.65555555555555,
+    "turnsAvg": 48.977777777777774,
+    "unfinished": 0
+   }
+  }
+ ]
+}

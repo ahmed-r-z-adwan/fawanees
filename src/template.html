@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#15112a">
+<!--PWA-HEAD-->
 <title>فوانيس</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%2315112a"/><circle cx="32" cy="35" r="21" fill="%23f2b447" opacity=".22"/><rect x="29.5" y="3" width="5" height="7" fill="%23f2b447"/><path d="M32 8l7 9H25z" fill="%23f2b447"/><path d="M22 18h20l4 14-4 16H22l-4-16z" fill="%23ffe9b8" stroke="%23f2b447" stroke-width="3" stroke-linejoin="round"/><rect x="19" y="48" width="26" height="5" rx="2" fill="%23f2b447"/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,6 +51,7 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
 .meter .bar { height: 10px; border-radius: 999px; background: var(--turq); overflow: hidden; display: flex; }
 .meter .fill { height: 100%; background: var(--amber); transition: width .6s ease; }
 .meter .legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin-top: 4px; }
+.meter.unknown .bar { opacity: .3; }
 .status { font-weight: 700; font-size: 17px; }
 .mind p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
 .mind .pred { color: #ffe2a0; }
@@ -82,6 +85,12 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
 .learn-text .learn-result { color: var(--text); border-inline-start: 3px solid var(--amber); padding-inline-start: 10px; }
 .learn-hint { color: var(--muted); font-size: 13px; min-height: 18px; }
 @media (max-width: 720px) { .learn-grid { grid-template-columns: 1fr; } dialog.learn { padding: 14px; } }
+@media (max-width: 460px) {
+  /* five buttons and a strapline do not both fit on a phone; the buttons win. */
+  .brand p { display: none; }
+  .brand h1 { font-size: 26px; }
+  .top-actions .btn { padding: 6px 10px; font-size: 13px; }
+}
 @media (max-width: 860px) {
   main { grid-template-columns: 1fr; }
   .brand h1 { font-size: 28px; }
@@ -191,6 +200,7 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
   <h2 data-i18n="how">كيف صُنعت؟</h2>
   <div id="howBody" class="stats"></div>
   <p class="stats" id="howEngine"></p>
+  <p class="stats" id="howCalib"></p>
   <div class="dialog-actions"><button class="btn primary" data-close data-i18n="close">إغلاق</button></div>
 </dialog>
 
@@ -229,7 +239,7 @@ const LEVELS = [
   { name: 'lv2', ms: 1000, depth: 64, noise: 0 },
   { name: 'lv3', ms: 2600, depth: 64, noise: 0 },
 ];
-const PREDICT_MS = 280, HINT_MS = 700;
+const PREDICT_MS = 280, HINT_MS = 700, METER_MS = 250;
 const CALIB = window.FawaneesCalibration;
 const OPENING = window.FawaneesOpening;
 const COLORS = { 1: { glow: '#f2b447', core: '#ffe9b8', rgb: '242,180,71' }, 2: { glow: '#3cc8cf', core: '#c8f7f8', rgb: '60,200,207' } };
@@ -245,7 +255,8 @@ const T = {
     lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
     gotIt: 'فهمت', close: 'إغلاق', again: 'العب مرة أخرى',
     gold: 'الذهبي', turq: 'الفيروزي', you: 'أنت', machine: 'الآلة', player: 'اللاعب',
-    left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`,
+    left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
+    calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
     yourTurn: 'دورك: اضغط خانة لترى أثرها، ثم اضغطها مرة ثانية', turnOf: n => `دور ${n}`, thinking: 'الآلة تفكّر…',
     confirmHint: 'اضغط مرة ثانية للتأكيد', swapOffer: 'يحق لك أن تأخذ فانوس الافتتاح لنفسك بدل الرد عليه',
     aiSwapped: 'أخذت الآلة فانوس افتتاحك لنفسها: رأت أنه قوي', aiNoSwap: 'قررت الآلة ألا تأخذ فانوسك',
@@ -286,7 +297,8 @@ const T = {
     lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
     gotIt: 'Got it', close: 'Close', again: 'Play again',
     gold: 'Gold', turq: 'Turquoise', you: 'You', machine: 'Machine', player: 'Player',
-    left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`,
+    left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
+    calibNote: (g, before, after) => `The win-chance meter is fitted on ${g} self-play games. Log loss went from ${before} to ${after}.`,
     yourTurn: 'Your turn: tap a cell to preview it, then tap it again', turnOf: n => `${n} to move`, thinking: 'The machine is thinking…',
     confirmHint: 'Tap again to confirm', swapOffer: 'You may take the opening lantern for yourself instead of answering it',
     aiSwapped: 'The machine took your opening lantern: it judged it too strong', aiNoSwap: 'The machine chose not to take your lantern',
@@ -339,6 +351,7 @@ let game, cfg = { mode: 'ai', level: 2, human: 1 };
 let selected = -1, busy = false, lastInfo = null, plan = [], prediction = null, predStats = { hit: 0, total: 0 }, revealCell = -1;
 let anim = null, biggestChain = 0, swapUsed = false, openingCell = -1, cursor = -1, demoTimer = null;
 let live = null;              // latest streamed search depth, drawn on the board while the AI thinks
+let evalInfo = null;          // latest evaluation of the position, whatever search produced it
 let generation = 0;           // bumped whenever the position is reset, to drop stale search results
 let currentThink = null;      // cancel handle for the search in flight
 const probHistory = [];
@@ -476,7 +489,7 @@ function newGame(opts) {
   abortThinking();
   game = new F.Game(RADIUS, RULES);
   geo = game.geo;
-  selected = -1; busy = false; lastInfo = null; plan = []; prediction = null; predStats = { hit: 0, total: 0 }; revealCell = -1;
+  selected = -1; busy = false; lastInfo = null; evalInfo = null; plan = []; prediction = null; predStats = { hit: 0, total: 0 }; revealCell = -1;
   biggestChain = 0; swapUsed = false; openingCell = -1; cursor = geo.index.get('0,0'); probHistory.length = 0;
   AI.warmup();
   resize(); updatePanel(); draw();
@@ -657,11 +670,24 @@ function fmtNum(n) {
   if (lang === 'ar') { if (n >= 1e6) return (n / 1e6).toFixed(1) + ' ' + t('mega'); if (n >= 1e4) return Math.round(n / 1e3) + ' ' + t('k'); return String(n); }
   if (n >= 1e6) return (n / 1e6).toFixed(1) + t('mega'); if (n >= 1e4) return Math.round(n / 1e3) + t('k'); return String(n);
 }
+// How far through the game we are, by lanterns placed. The win-chance model is fitted per phase
+// because the same lead means very different things on move 3 and on move 40.
+const SUPPLY_TOTAL = RULES.supply * 2;
+function phaseNow() { return (SUPPLY_TOTAL - game.hands[1] - game.hands[2]) / SUPPLY_TOTAL; }
+
+// Returns null when nothing has evaluated this position yet: the meter shows a dash rather than
+// inventing a number.
 function winProb1() {
-  if (!lastInfo) return 0.5;
-  const v1 = lastInfo.side === 1 ? lastInfo.value : -lastInfo.value;
-  if (Math.abs(v1) >= F.WIN - 500) return v1 > 0 ? 0.99 : 0.01;
-  return 1 / (1 + Math.exp(-v1 / 7));
+  if (!evalInfo) return null;
+  const v1 = evalInfo.side === 1 ? evalInfo.value : -evalInfo.value;
+  if (Math.abs(v1) >= F.WIN - 500) return v1 > 0 ? 0.995 : 0.005;
+  return CALIB.prob(v1, evalInfo.phase, evalInfo.side === 1);
+}
+// Every search in the page feeds the meter, including the one that guesses the human's move,
+// so the bar keeps up instead of freezing until the machine's next turn.
+function noteEval(res) {
+  if (!res) return;
+  evalInfo = { value: res.value, side: res.side, phase: phaseNow(), depth: res.depth };
 }
 function updatePanel(extra) {
   if (!game) return;
@@ -673,9 +699,10 @@ function updatePanel(extra) {
   document.getElementById('side1').classList.toggle('turn', !game.over && game.toMove === 1);
   document.getElementById('side2').classList.toggle('turn', !game.over && game.toMove === 2);
   const p1 = winProb1();
-  document.getElementById('meterFill').style.width = (p1 * 100).toFixed(1) + '%';
-  document.getElementById('meter1').textContent = t('chance', t('gold'), Math.round(p1 * 100));
-  document.getElementById('meter2').textContent = t('chance', t('turq'), 100 - Math.round(p1 * 100));
+  document.getElementById('meterFill').style.width = ((p1 === null ? 0.5 : p1) * 100).toFixed(1) + '%';
+  document.getElementById('meter1').textContent = p1 === null ? t('chanceUnknown', t('gold')) : t('chance', t('gold'), Math.round(p1 * 100));
+  document.getElementById('meter2').textContent = p1 === null ? t('chanceUnknown', t('turq')) : t('chance', t('turq'), 100 - Math.round(p1 * 100));
+  document.querySelector('.meter').classList.toggle('unknown', p1 === null);
   let status;
   if (game.over) status = t('over');
   else if (busy && !isHuman(game.toMove)) status = t('thinking');
@@ -737,6 +764,7 @@ function nextTurn() {
     busy = false; updatePanel();
     if (!swapUsed && game.canSwap()) toast(t('swapOffer'));
     if (cfg.mode === 'ai' && document.getElementById('optPredict').checked) setTimeout(makePrediction, 60);
+    else setTimeout(meterEval, 60);
     return;
   }
   busy = true; updatePanel(); draw();
@@ -752,30 +780,23 @@ function think(p, ms, depth, onDepth) {
   return { cancel: h.cancel, promise: h.promise.then(res => (gen === generation && res && !res.cancelled) ? res : null) };
 }
 
-function ringOf(i) { const c = geo.cells[i]; return Math.max(Math.abs(c.q), Math.abs(c.r), Math.abs(c.q + c.r)); }
-function cellsByRing() {
-  const byRing = [];
-  for (let i = 0; i < geo.N; i++) { const r = ringOf(i); (byRing[r] || (byRing[r] = [])).push(i); }
-  return byRing;
-}
 
 function machineMove(p) {
   const lv = LEVELS[cfg.mode === 'demo' ? 2 : cfg.level];
   // Opening: the first lantern comes from the measured opening policy, not from search.
   if (game.history.length === 0) {
-    const j = OPENING.pickOpening(cellsByRing());
-    plan = []; lastInfo = null; live = null; busy = false;
+    const j = OPENING.pickOpening(geo);
+    plan = []; lastInfo = null; evalInfo = null; live = null; busy = false;
     return playMove(j, () => setTimeout(nextTurn, 300));
   }
   // Swap decision as the second player.
   if (!swapUsed && game.canSwap()) {
-    const r = ringOf(game.history[0].move);
     swapUsed = true;
-    if (OPENING.shouldSwap(r, game.history[0].move, geo)) { doSwap(); busy = false; toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
+    if (OPENING.shouldSwap(game.history[0].move, geo)) { doSwap(); busy = false; toast(t('aiSwapped')); return setTimeout(nextTurn, 900); }
     if (cfg.mode === 'ai') toast(t('aiNoSwap'));
   }
   live = null;
-  const handle = think(p, lv.ms, lv.depth, (m) => { live = m; updatePanel(); draw(); });
+  const handle = think(p, lv.ms, lv.depth, (m) => { live = m; noteEval(m); updatePanel(); draw(); });
   currentThink = handle;
   handle.promise.then(res => {
     currentThink = null;
@@ -787,6 +808,7 @@ function machineMove(p) {
       move = pool[Math.floor(Math.random() * pool.length)].move;
     }
     lastInfo = { value: res.value, depth: res.depth, nodes: res.nodes, ms: res.ms, side: p };
+    noteEval(res);
     plan = (res.pv || []).slice(1, 5);
     live = null; busy = false;
     playMove(move, () => setTimeout(nextTurn, cfg.mode === 'demo' ? 700 : 150));
@@ -796,20 +818,30 @@ function machineMove(p) {
 function doSwap() {
   game.swapOpening();
   swapUsed = true;
-  plan = []; lastInfo = null; live = null; updatePanel(); draw();
+  plan = []; lastInfo = null; evalInfo = null; live = null; updatePanel(); draw();
 }
 
 // Runs while it is the human's turn. With a worker it is genuinely free; either way every depth
 // it completes refines the guess, so whenever the human moves we already have the best one so far.
+// Keeps the win chance current when no other search is running (two players on one device, or
+// the prediction turned off). It costs nothing: the worker is idle while a human thinks.
+function meterEval() {
+  if (!game || game.over || busy) return;
+  const at = game.history.length;
+  const fresh = (m) => { if (game.history.length === at) { noteEval(m); updatePanel(); } };
+  think(game.toMove, METER_MS, 64, fresh).promise.then(r => { if (r) fresh(r); });
+}
+
 function makePrediction() {
   if (!isHuman(game.toMove) || busy || game.over) return;
-  const handle = think(game.toMove, PREDICT_MS, 64, (m) => { if (isHuman(game.toMove) && !busy) prediction = m.move; });
+  const handle = think(game.toMove, PREDICT_MS, 64, (m) => { if (isHuman(game.toMove) && !busy) { prediction = m.move; noteEval(m); updatePanel(); } });
   currentThink = handle;
-  handle.promise.then(res => { if (currentThink === handle) currentThink = null; if (res && isHuman(game.toMove) && !busy) prediction = res.move; });
+  handle.promise.then(res => { if (currentThink === handle) currentThink = null; if (res && isHuman(game.toMove) && !busy) { prediction = res.move; noteEval(res); updatePanel(); } });
 }
 
 function humanPlay(j) {
   if (busy || game.over || !isHuman(game.toMove)) return;
+  if (currentThink) { currentThink.cancel(); currentThink = null; }
   selected = -1;
   const p = game.toMove;
   let msg = null;
@@ -874,7 +906,7 @@ document.getElementById('btnHint').onclick = () => {
 };
 document.getElementById('btnUndo').onclick = () => {
   if (busy || !game.history.length) return;
-  selected = -1; plan = []; lastInfo = null; prediction = null;
+  selected = -1; plan = []; lastInfo = null; evalInfo = null; prediction = null;
   abortThinking();
   const undoOne = () => { const rec = game.undo(); if (rec && rec.swap) swapUsed = false; return rec; };
   undoOne();
@@ -889,6 +921,7 @@ document.getElementById('btnLearn').onclick = () => Tutorial.open(0);
 document.getElementById('linkHow').onclick = e => {
   e.preventDefault();
   document.getElementById('howEngine').textContent = AI.mode === 'worker' ? t('engineThread') : AI.mode === 'local' ? t('engineMain') : '';
+  document.getElementById('howCalib').textContent = CALIB.measured ? t('calibNote', CALIB.games, CALIB.logLossBefore, CALIB.logLossAfter) : '';
   document.getElementById('dlgHow').showModal();
 };
 document.getElementById('btnNew').onclick = () => document.getElementById('dlgNew').showModal();
@@ -927,5 +960,6 @@ applyLang();
 try { if (!localStorage.getItem('fw-seen-rules')) { localStorage.setItem('fw-seen-rules', '1'); Tutorial.open(0); } } catch (e) {}
 })();
 </script>
+<!--PWA-SCRIPT-->
 </body>
 </html>
