@@ -43,8 +43,13 @@ for (const [label, dir, file] of [['the single file', DIST, 'fawanees.html'], ['
           // nothing stray should render before the app
           firstBodyText: (document.body.firstChild && document.body.firstChild.nodeType === 3)
             ? document.body.firstChild.textContent.trim() : '',
-          // every element the browser built should be a real one
-          unknownTags: [...new Set([...document.querySelectorAll('*')].map(e => e.tagName))]
+          // Every element the browser built should be a real one. HTML elements only: this is
+          // looking for elements invented out of broken markup, and createElement cannot
+          // reproduce a genuine inline <svg> -- it would make an unknown HTML element of that
+          // name and report the drawing as damage.
+          unknownTags: [...new Set([...document.querySelectorAll('*')]
+            .filter(e => e.namespaceURI === 'http://www.w3.org/1999/xhtml')
+            .map(e => e.tagName))]
             .filter(tn => document.createElement(tn).constructor.name === 'HTMLUnknownElement'),
           iconHref: icon ? icon.getAttribute('href') : null,
           iconLoads: null,

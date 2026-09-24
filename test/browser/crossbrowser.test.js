@@ -47,7 +47,12 @@ for (const target of TARGETS) {
       // the page must parse into the document it describes, on this engine too
       const dom = await page.evaluate(() => ({
         appParent: document.querySelector('.app').parentElement.tagName,
-        unknown: [...new Set([...document.querySelectorAll('*')].map(e => e.tagName))]
+        // Only HTML elements: this is looking for elements the parser invented out of broken
+        // markup, and createElement cannot reproduce a genuine inline <svg> -- it would make an
+        // unknown HTML element of that name and report the drawing as damage.
+        unknown: [...new Set([...document.querySelectorAll('*')]
+          .filter(e => e.namespaceURI === 'http://www.w3.org/1999/xhtml')
+          .map(e => e.tagName))]
           .filter(tn => document.createElement(tn).constructor.name === 'HTMLUnknownElement'),
         dir: document.documentElement.dir,
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
