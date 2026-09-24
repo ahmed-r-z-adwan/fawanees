@@ -342,6 +342,32 @@
     // may start and how long it may take, which is what lets the same search run inside a
     // worker (stream a result per depth) or on the main thread in short slices (never freeze).
     startSearch(board, side, opts = {}) { return new SearchRun(this, board, side, opts); }
+    // Exact value for every root move. The ordinary search narrows its window as it goes, so the
+    // scores it reports for the also-rans are upper bounds and cannot be compared with each other;
+    // here every move gets a full window, which is what "this move is N points better than any
+    // other" needs. Costs a few times more, so it is for analysis, not for play.
+    rootScoresExact(board, side, depth, opts = {}) {
+      const hands = opts.hands || [0, 999, 999];
+      const H1 = Math.min(hands[1], 127), H2 = Math.min(hands[2], 127);
+      this.deadline = Date.now() + (opts.timeMs ?? 1e9);
+      this.nodes = 0; this.stop = false; this.nodeLimit = opts.nodeLimit ?? Infinity;
+      this.history.fill(0);
+      const b0 = this.boards[0]; b0.set(board);
+      const sc0 = this.scs[0];
+      computeLight(this.geo, b0, sc0);
+      const n = (side === 1 ? H1 : H2) > 0 ? legalMoves(this.geo, b0, side, sc0, this.moves[0], this.rules.restrict) : 0;
+      const list = Array.from(this.moves[0].subarray(0, n));
+      const out = [];
+      for (const m of list) {
+        const b1 = this.descend(b0, sc0, 0, side, m);
+        const v = -this.negamax(b1, 3 - side, depth - 1, -Infinity, Infinity, 1, false,
+                                side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
+        if (this.stop) break;
+        out.push({ move: m, score: v });
+      }
+      out.sort((a, b) => b.score - a.score);
+      return out;
+    }
     // Blocking convenience wrapper: iterative deepening until the time or depth budget runs out.
     search(board, side, opts = {}) {
       const run = this.startSearch(board, side, opts);

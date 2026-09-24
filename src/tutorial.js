@@ -12,6 +12,7 @@ const Tutorial = (function () {
   const c2 = cv.getContext('2d');
 
   let step = 0, lesson = null, m = null, stage = 'task', anim = null, hoverCell = -1, lay = null;
+let animToken = 0;   // moving to another lesson must abandon a chain that is still playing
 
   const TX = {
     ar: {
@@ -247,7 +248,7 @@ const Tutorial = (function () {
     step = Math.max(0, Math.min(LS.LESSONS.length - 1, i));
     lesson = LS.LESSONS[step];
     m = LS.measure(lesson);
-    stage = 'task'; anim = null; hoverCell = -1;
+    stage = 'task'; anim = null; animToken++; hoverCell = -1;
     render();
     layout(); requestAnimationFrame(loop);
   }
@@ -286,13 +287,12 @@ const Tutorial = (function () {
     let b = m.boards.placed.slice();
     m.waves.forEach(w => { b = b.slice(); w.forEach(i => { b[i] = m.mover; }); frames.push(b); });
     anim = { board: frames[0], born };
+    const token = ++animToken;
     let f = 0;
     const advance = () => {
+      if (token !== animToken || !anim) return;     // the player has already moved on
       f++;
-      if (f >= frames.length) {
-        anim = null; paint();
-        return;
-      }
+      if (f >= frames.length) { anim = null; paint(); return; }
       (m.waves[f - 1] || []).forEach(i => { born[i] = performance.now(); });
       anim.board = frames[f];
       setTimeout(advance, reduceMotion ? 0 : 620);

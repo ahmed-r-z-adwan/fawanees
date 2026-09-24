@@ -1,0 +1,20 @@
+{
+  "name": "فوانيس — Fawanees",
+  "short_name": "فوانيس",
+  "description": "لعبة ضوء وظل اخترعها ذكاء اصطناعي. A two-player game of light and shadow, invented by an AI.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/fawanees/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#15112a",
+  "theme_color": "#15112a",
+  "categories": ["games", "board"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
