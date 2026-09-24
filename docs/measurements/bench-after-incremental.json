@@ -1,0 +1,41 @@
+{
+ "depths": [
+  {
+   "depth": 3,
+   "positions": 8,
+   "nodes": 66957,
+   "ms": 87,
+   "nps": 770484,
+   "msPerPosition": 10.9
+  },
+  {
+   "depth": 4,
+   "positions": 8,
+   "nodes": 210866,
+   "ms": 273,
+   "nps": 772022,
+   "msPerPosition": 34.1
+  },
+  {
+   "depth": 5,
+   "positions": 8,
+   "nodes": 4831085,
+   "ms": 5375,
+   "nps": 898780,
+   "msPerPosition": 671.9
+  },
+  {
+   "depth": 6,
+   "positions": 8,
+   "nodes": 21210709,
+   "ms": 30378,
+   "nps": 698217,
+   "msPerPosition": 3797.3
+  }
+ ],
+ "selfPlay": {
+  "games": 18,
+  "secsPerGame": 0.346,
+  "turnsPerGame": 48
+ }
+}

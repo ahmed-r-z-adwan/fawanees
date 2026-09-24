@@ -297,6 +297,94 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
     return recordWaves ? waves : total;
   }
 
+  // ---------- Incremental light ----------
+  // Placing or flipping one lantern changes the light on a handful of cells, not on all of them.
+  // Keeping the maps up to date costs about 6*range steps instead of a full N*6*range sweep, which
+  // is what the search spent most of its time on. Both functions leave `sc` exactly equal to what
+  // computeLight would produce for the new board; test/unit/incremental.test.js checks that on
+  // random positions, and the engine's behavioural signature is unchanged.
+
+  // Add a lantern of colour p on the empty cell j.
+  function placeIncremental(geo, board, sc, j, p) {
+    const range = geo.range || 99, rs = geo.rayStart, rl = geo.rayLen, rc = geo.rayCells;
+    // 1. Beams that used to pass through j now stop at j, so drop what they lit beyond it.
+    for (let d = 0; d < 6; d++) {
+      const k0 = rs[j * 6 + d], len = rl[j * 6 + d] < range ? rl[j * 6 + d] : range;
+      let x = -1, kb = 0;
+      for (let k = 0; k < len; k++) { const c = rc[k0 + k]; if (board[c] !== 0) { x = c; kb = k + 1; break; } }
+      if (x < 0) continue;
+      const cx = board[x];
+      const L = cx === 1 ? sc.l1 : sc.l2, S = cx === 1 ? sc.s1 : sc.s2;
+      const o = (d + 3) % 6, p0 = rs[j * 6 + o], beyond = range - kb;
+      const plen = rl[j * 6 + o] < beyond ? rl[j * 6 + o] : beyond;
+      for (let k = 0; k < plen; k++) {
+        const c = rc[p0 + k];
+        if (board[c] === 0) L[c]--; else { S[c]--; break; }
+      }
+    }
+    // 2. Every beam that reached j now sees the lantern standing there.
+    sc.s1[j] = sc.l1[j]; sc.s2[j] = sc.l2[j];
+    sc.l1[j] = 0; sc.l2[j] = 0;
+    board[j] = p;
+    // 3. The new lantern's own six beams.
+    const L = p === 1 ? sc.l1 : sc.l2, S = p === 1 ? sc.s1 : sc.s2;
+    for (let d = 0; d < 6; d++) {
+      const k0 = rs[j * 6 + d], len = rl[j * 6 + d] < range ? rl[j * 6 + d] : range;
+      for (let k = 0; k < len; k++) {
+        const c = rc[k0 + k];
+        if (board[c] === 0) L[c]++; else { S[c]++; break; }
+      }
+    }
+  }
+
+  // Change the colour of the lantern on cell i. Its beams keep their shape and only change side,
+  // and who sees it does not change at all.
+  function flipIncremental(geo, board, sc, i, from, to) {
+    const range = geo.range || 99, rs = geo.rayStart, rl = geo.rayLen, rc = geo.rayCells;
+    const Lf = from === 1 ? sc.l1 : sc.l2, Sf = from === 1 ? sc.s1 : sc.s2;
+    const Lt = to === 1 ? sc.l1 : sc.l2, St = to === 1 ? sc.s1 : sc.s2;
+    for (let d = 0; d < 6; d++) {
+      const k0 = rs[i * 6 + d], len = rl[i * 6 + d] < range ? rl[i * 6 + d] : range;
+      for (let k = 0; k < len; k++) {
+        const c = rc[k0 + k];
+        if (board[c] === 0) { Lf[c]--; Lt[c]++; } else { Sf[c]--; St[c]++; break; }
+      }
+    }
+    board[i] = to;
+  }
+
+  // applyMove, but `sc` must already hold the light for `board` and is kept valid throughout.
+  function applyMoveInc(geo, board, p, j, rules, sc, recordWaves) {
+    if (rules.capture === 'remove') return applyMove(geo, board, p, j, rules, sc, recordWaves);
+    placeIncremental(geo, board, sc, j, p);
+    const q = 3 - p, N = geo.N, K = rules.K, M = rules.M || 1;
+    const sp = p === 1 ? sc.s1 : sc.s2, sq = p === 1 ? sc.s2 : sc.s1;
+    const waves = recordWaves ? [] : null;
+    let total = 0;
+    const flips = [];
+    for (;;) {
+      flips.length = 0;
+      for (let i = 0; i < N; i++) if (board[i] === q && sp[i] >= K && sp[i] >= sq[i] + M) flips.push(i);
+      if (flips.length === 0) break;
+      for (let k = 0; k < flips.length; k++) flipIncremental(geo, board, sc, flips[k], q, p);
+      total += flips.length;
+      if (waves) waves.push(flips.slice());
+    }
+    return recordWaves ? waves : total;
+  }
+
+  const copyLight = (dst, src) => { dst.l1.set(src.l1); dst.l2.set(src.l2); dst.s1.set(src.s1); dst.s2.set(src.s2); };
+
+  function scoreWithLight(geo, board, sc, komi) {
+    let a = 0, b = komi || 0;
+    for (let j = 0; j < geo.N; j++) {
+      const v = board[j];
+      if (v === 1) a++; else if (v === 2) b++;
+      else if (sc.l1[j] > sc.l2[j]) a++; else if (sc.l2[j] > sc.l1[j]) b++;
+    }
+    return [a, b];
+  }
+
   function score(geo, board, sc, komi) {
     computeLight(geo, board, sc);
     let a = 0, b = komi || 0;
@@ -411,7 +499,9 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
       this.zSideA = rnd(); this.zSideB = rnd(); this.zPassA = rnd(); this.zPassB = rnd();
       this.zHA = new Uint32Array(2 * 128); this.zHB = new Uint32Array(2 * 128);
       for (let i = 0; i < 256; i++) { this.zHA[i] = rnd(); this.zHB[i] = rnd(); }
-      this.ttBits = 20; this.ttSize = 1 << this.ttBits; this.ttMask = this.ttSize - 1;
+      // A 2^20 table is right for the deep searches the page runs. Self-play at shallow depth
+      // needs far less, and a table that fits in cache is what makes many parallel workers scale.
+      this.ttBits = this.w.ttBits || 20; this.ttSize = 1 << this.ttBits; this.ttMask = this.ttSize - 1;
       this.ttKey = new Uint32Array(this.ttSize); this.ttDepth = new Int8Array(this.ttSize).fill(-1);
       this.ttVal = new Float32Array(this.ttSize); this.ttFlag = new Int8Array(this.ttSize); this.ttMove = new Int16Array(this.ttSize);
       this.history = new Float64Array(3 * N);
@@ -437,10 +527,20 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
       let s = (lan1 + c1) - (lan2 + c2) - (this.rules.komi || 0) + this.w.mob * (m1 - m2);
       return p === 1 ? s : -s;
     }
+    // `sc` must already hold the light for `board`.
     terminalValue(board, p, sc) {
-      const [a, b] = score(this.geo, board, sc, this.rules.komi);
+      const [a, b] = scoreWithLight(this.geo, board, sc, this.rules.komi);
       const d = p === 1 ? a - b : b - a;
       return d > 0 ? WIN + d : d < 0 ? -WIN + d : 0;
+    }
+    // Set up the child's board and light from the parent's, then apply the move incrementally.
+    // Copying four Int8Arrays is a memcpy; recomputing the light was the search's biggest cost.
+    descend(board, sc, ply, side, m) {
+      const nb = this.boards[ply + 1], nsc = this.scs[ply + 1];
+      nb.set(board);
+      copyLight(nsc, sc);
+      if (m >= 0) applyMoveInc(this.geo, nb, side, m, this.rules, nsc, false);
+      return nb;
     }
     // One search, run one iteration at a time. The caller decides when the next iteration
     // may start and how long it may take, which is what lets the same search run inside a
@@ -457,12 +557,12 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
       }
       return run.result();
     }
+    // The caller must leave this.scs[ply] holding the light for `board`.
     negamax(board, side, depth, alpha, beta, ply, prevPass, h1, h2) {
       this.nodes++;
       if ((this.nodes & 1023) === 0 && (Date.now() > this.deadline || this.nodes > this.nodeLimit)) this.stop = true;
       if (this.stop) return 0;
       const sc = this.scs[ply];
-      computeLight(this.geo, board, sc);
       const moves = this.moves[ply];
       const myH = side === 1 ? h1 : h2, opH = side === 1 ? h2 : h1;
       let n = myH > 0 ? legalMoves(this.geo, board, side, sc, moves, this.rules.restrict) : 0;
@@ -494,13 +594,12 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
       }
       const alpha0 = alpha;
       let bestVal = -Infinity, bestMove = moves[0];
-      const nb = this.boards[ply + 1];
       for (let i = 0; i < n; i++) {
         const m = moves[i];
-        nb.set(board);
+        const nb = this.descend(board, sc, ply, side, m);
         let v;
         if (m < 0) v = prevPass ? this.terminalValue(nb, side, this.scs[ply + 1]) : -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, true, h1, h2);
-        else { applyMove(this.geo, nb, side, m, this.rules, this.scs[ply + 1], false); v = -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, false, side === 1 ? h1 - 1 : h1, side === 2 ? h2 - 1 : h2); }
+        else v = -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, false, side === 1 ? h1 - 1 : h1, side === 2 ? h2 - 1 : h2);
         if (this.stop) return 0;
         if (v > bestVal) { bestVal = v; bestMove = m; }
         if (v > alpha) alpha = v;
@@ -574,14 +673,10 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
       const scores = [];
       for (let k = 0; k < rootMoves.length; k++) {
         const m = rootMoves[k].move;
-        const b1 = E.boards[1]; b1.set(b0);
+        const b1 = E.descend(b0, E.scs[0], 0, side, m);
         let v;
-        if (m < 0) {
-          v = this.prevPass ? E.terminalValue(b1, side, E.scs[1]) : -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, true, H1, H2);
-        } else {
-          applyMove(E.geo, b1, side, m, E.rules, E.scs[1], false);
-          v = -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, false, side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
-        }
+        if (m < 0) v = this.prevPass ? E.terminalValue(b1, side, E.scs[1]) : -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, true, H1, H2);
+        else v = -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, false, side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
         if (E.stop) break;
         rootMoves[k].score = v; scores.push(v);
         if (v > bestVal) { bestVal = v; bestMove = m; }
@@ -615,7 +710,8 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
     }
   }
 
-  const api = { makeGeometry, makeScratch, computeLight, legalMoves, countLegal, applyMove, score, Game, Engine, SearchRun, WIN, DIRS };
+  const api = { makeGeometry, makeScratch, computeLight, legalMoves, countLegal, applyMove, applyMoveInc,
+                placeIncremental, flipIncremental, copyLight, score, scoreWithLight, Game, Engine, SearchRun, WIN, DIRS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Fawanees = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 
