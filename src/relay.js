@@ -118,6 +118,10 @@
 
     let ws = null, buf = new Uint8Array(0), ping = null, retry = null, guard = null;
     let tries = 0, live = false, closed = false, peerOnline = false, current = null;
+    // Which of the peer's connections we are hearing about. A reload gives them a new token, and
+    // the will from the connection they just dropped arrives late -- often after the new one has
+    // already said hello. Without this, every refresh on their phone reads as "they left".
+    let peerToken = null, warnedAbout = null;
 
     const send = (bytes) => { if (ws && ws.readyState === 1) ws.send(bytes); };
 
@@ -144,7 +148,12 @@
       send(subscribePacket(1, base + '#'));
       send(publishPacket(mine, '1:' + token, true));
       clearInterval(ping);
-      ping = setInterval(() => send(PINGREQ), KEEPALIVE * 500);
+      ping = setInterval(() => {
+        send(PINGREQ);
+        // Say we are still here as well as staying connected. If a stale will ever did land after
+        // us, or the broker dropped the retained message, this puts it right within one interval.
+        send(publishPacket(mine, '1:' + token, true));
+      }, KEEPALIVE * 500);
       say('onStatus', 'online');
     }
 
@@ -190,11 +199,19 @@
       const qos = (flags >> 1) & 3;
       const payload = textDec.decode(body.subarray(2 + n + (qos ? 2 : 0)));
       if (topic === theirs) {
-        const on = payload.charAt(0) === '1';
+        const on = payload.charAt(0) === '1', who = payload.slice(2);
+        // A goodbye only counts from the connection that said hello.
+        if (!on && peerToken && who && who !== peerToken) return;
+        if (on) peerToken = who;
         if (on !== peerOnline) { peerOnline = on; say('onPeer', on); }
       } else if (topic === mine) {
-        // Someone else opened this link and sat in my chair.
-        if (payload.charAt(0) === '1' && payload.slice(2) !== token) say('onSeatTaken');
+        // Someone else opened this link and sat in my chair. Their heartbeat repeats; the news
+        // does not need to.
+        const who = payload.slice(2);
+        if (payload.charAt(0) === '1' && who !== token && who !== warnedAbout) {
+          warnedAbout = who;
+          say('onSeatTaken');
+        }
       } else if (topic === stateTopic && payload) {
         if (payload === current) return;                      // our own echo, or nothing new
         current = payload;

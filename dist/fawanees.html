@@ -73,6 +73,7 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
   cursor: pointer; padding: 2px 6px; }
 .linkbar { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
 .linkbar .linkturn { font-weight: 700; }
+.linkbar .linkyou { font-size: 13px; color: var(--muted); margin-top: -6px; }
 .linkbar .linkrow { display: flex; gap: 8px; }
 .linkbar .linkrow .btn { flex: 1 1 auto; }
 #btnShare { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
@@ -174,8 +175,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         <div class="peer" id="peerRow" hidden><span class="dot"></span><span id="peerText"></span></div>
         <div class="roomcode" id="roomCode" hidden></div>
         <div class="linkturn" id="linkTurn"></div>
+        <div class="linkyou" id="linkYou"></div>
         <div class="linkrow">
           <button class="btn primary" id="btnShare"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg><span id="btnShareText"></span></button>
+          <button class="btn primary" id="btnRematch" hidden></button>
           <button class="btn" id="btnLeave" hidden></button>
         </div>
       </div>
@@ -415,6 +418,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
 
     let ws = null, buf = new Uint8Array(0), ping = null, retry = null, guard = null;
     let tries = 0, live = false, closed = false, peerOnline = false, current = null;
+    // Which of the peer's connections we are hearing about. A reload gives them a new token, and
+    // the will from the connection they just dropped arrives late -- often after the new one has
+    // already said hello. Without this, every refresh on their phone reads as "they left".
+    let peerToken = null, warnedAbout = null;
 
     const send = (bytes) => { if (ws && ws.readyState === 1) ws.send(bytes); };
 
@@ -441,7 +448,12 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       send(subscribePacket(1, base + '#'));
       send(publishPacket(mine, '1:' + token, true));
       clearInterval(ping);
-      ping = setInterval(() => send(PINGREQ), KEEPALIVE * 500);
+      ping = setInterval(() => {
+        send(PINGREQ);
+        // Say we are still here as well as staying connected. If a stale will ever did land after
+        // us, or the broker dropped the retained message, this puts it right within one interval.
+        send(publishPacket(mine, '1:' + token, true));
+      }, KEEPALIVE * 500);
       say('onStatus', 'online');
     }
 
@@ -487,11 +499,19 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       const qos = (flags >> 1) & 3;
       const payload = textDec.decode(body.subarray(2 + n + (qos ? 2 : 0)));
       if (topic === theirs) {
-        const on = payload.charAt(0) === '1';
+        const on = payload.charAt(0) === '1', who = payload.slice(2);
+        // A goodbye only counts from the connection that said hello.
+        if (!on && peerToken && who && who !== peerToken) return;
+        if (on) peerToken = who;
         if (on !== peerOnline) { peerOnline = on; say('onPeer', on); }
       } else if (topic === mine) {
-        // Someone else opened this link and sat in my chair.
-        if (payload.charAt(0) === '1' && payload.slice(2) !== token) say('onSeatTaken');
+        // Someone else opened this link and sat in my chair. Their heartbeat repeats; the news
+        // does not need to.
+        const who = payload.slice(2);
+        if (payload.charAt(0) === '1' && who !== token && who !== warnedAbout) {
+          warnedAbout = who;
+          say('onSeatTaken');
+        }
       } else if (topic === stateTopic && payload) {
         if (payload === current) return;                      // our own echo, or nothing new
         current = payload;
@@ -1498,6 +1518,7 @@ const T = {
     roomPeerJoined: 'صاحبك دخل، يلا العبوا', roomPeerLeft: 'صاحبك طلع من الغرفة',
     roomTaken: 'في حدا تاني فتح نفس الرابط', roomLeft: 'طلعت من الغرفة', friend: 'صاحبك',
     roomNoConnect: 'ما قدرنا نوصل. جرّب الإنترنت وافتح غرفة جديدة',
+    youAre: n => `أنت ${n}`, rematch: 'لعبة جديدة',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
@@ -1565,6 +1586,7 @@ const T = {
     roomPeerJoined: 'Your friend joined — play!', roomPeerLeft: 'Your friend left the room',
     roomTaken: 'Someone else opened the same link', roomLeft: 'You left the room', friend: 'Your friend',
     roomNoConnect: 'Could not connect. Check the network and open a new room',
+    youAre: n => `You are ${n}`, rematch: 'Play again',
     boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `The win-chance meter is fitted on ${g} self-play games. Log loss went from ${before} to ${after}.`,
@@ -2014,6 +2036,8 @@ function updatePanel(extra) {
     bar.hidden = false;
     document.getElementById('peerRow').hidden = true;
     document.getElementById('roomCode').hidden = true;
+    document.getElementById('linkYou').textContent = '';
+    document.getElementById('btnRematch').hidden = true;
     document.getElementById('btnLeave').hidden = true;
     document.getElementById('btnShare').disabled = false;
     document.getElementById('linkTurn').textContent = game.over
@@ -2241,6 +2265,7 @@ document.getElementById('btnUndo').onclick = () => {
 };
 document.getElementById('btnShare').onclick = () => (Online.active() ? Online : LinkGame).share();
 document.getElementById('btnLeave').onclick = () => { Online.leave(); newGame({ mode: 'ai', level: 2, human: 1 }); };
+document.getElementById('btnRematch').onclick = () => newGame({ mode: 'online' });   // same room, new game
 // Leaving is the common case -- closing the tab, locking the phone -- and the point of the room is
 // that the other player finds out. Say so on the way out rather than making them wait for the will.
 addEventListener('pagehide', () => Online.bye());
@@ -2255,7 +2280,15 @@ document.getElementById('linkHow').onclick = e => {
   document.getElementById('howCalib').textContent = CALIB.measured ? t('calibNote', CALIB.games, CALIB.logLossBefore, CALIB.logLossAfter) : '';
   document.getElementById('dlgHow').showModal();
 };
-document.getElementById('btnNew').onclick = () => document.getElementById('dlgNew').showModal();
+document.getElementById('btnNew').onclick = () => {
+  // Open on the mode in play. Otherwise someone in a room presses New Game, the dialog is still
+  // showing "against the machine" from last time, and they leave the room without meaning to.
+  const press = (id, v) => document.querySelectorAll('#' + id + ' button').forEach(
+    b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
+  press('segMode', cfg.mode); press('segLevel', cfg.level); press('segSide', cfg.human);
+  document.getElementById('aiOpts').hidden = cfg.mode !== 'ai';
+  document.getElementById('dlgNew').showModal();
+};
 document.querySelectorAll('dialog [data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
 document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -2415,11 +2448,20 @@ const Online = (function () {
   const RELAY = window.FawaneesRelay;
   const HOST_WAIT = 11000;                 // a broker that has not answered by now is not going to
   let link = null, room = null, seat = null;
-  let status = 'off', peer = false, everPeer = false, hostTry = 0, hostTimer = null;
+  let status = 'off', peer = false, everPeer = false, hostTry = 0, hostTimer = null, swapped = false;
 
   const active = () => !!link;
   const colour = () => (seat === 'a' ? 1 : 2);
-  const urlFor = (r) => location.origin + location.pathname + '?r=' + r;
+  // Not origin + pathname: a page opened straight from disk has no origin, and the single-file
+  // copy is a real way people run this.
+  const urlFor = (r) => location.href.replace(/[?#].*$/, '') + '?r=' + r;
+
+  // Reloading must put you back in your own chair; opening the same link in a second tab must
+  // not. That is exactly sessionStorage: it survives a refresh and belongs to one tab only.
+  // localStorage would hand the host's chair to anyone opening the link on the same browser.
+  const seatKey = (r) => 'fw-seat-' + r;
+  const rememberSeat = (r, s) => { try { sessionStorage.setItem(seatKey(r), s); } catch (e) {} };
+  const seatFor = (r) => { try { return sessionStorage.getItem(seatKey(r)); } catch (e) { return null; } };
 
   function stop() {
     clearTimeout(hostTimer); hostTimer = null;
@@ -2429,8 +2471,9 @@ const Online = (function () {
   }
 
   function connect(r, s) {
-    stop();
+    stop();                                // clears room/seat, so callers pass them in
     room = r; seat = s; status = 'connecting';
+    rememberSeat(r, s);
     history.replaceState(null, '', location.pathname + '?r=' + r);
     link = RELAY.join({
       room: r, seat: s,
@@ -2442,7 +2485,14 @@ const Online = (function () {
         repaint();
       },
       onState: adopt,
-      onSeatTaken: () => toast(t('roomTaken')),
+      onSeatTaken: () => {
+        // Someone else is in this chair. If the other one is empty this is almost always the host
+        // coming back through their own link after closing the tab, so go and sit there instead
+        // of two people sharing a colour. Once only, or a pair of clients could trade places
+        // forever.
+        if (!swapped && !peer) { swapped = true; return connect(room, seat === 'a' ? 'b' : 'a'); }
+        toast(t('roomTaken'));
+      },
     });
   }
 
@@ -2450,7 +2500,7 @@ const Online = (function () {
   // players in the same place. If the first broker will not answer we start over on the next --
   // safe only because the link has not been shared yet, which is why the share button waits.
   function host() {
-    hostTry = 0;
+    hostTry = 0; swapped = false;
     tryHost();
   }
   function tryHost() {
@@ -2464,13 +2514,20 @@ const Online = (function () {
     repaint();
   }
 
-  const join = (r) => connect(r, 'b');
+  // Whoever opens a link they have not been in before takes the second chair; if they have been
+  // in this room, they get their own chair back.
+  const join = (r) => { swapped = false; connect(r, seatFor(r) || 'b'); };
 
   // Whatever arrives from the other device is replayed through the engine, never trusted.
   function adopt(code) {
     const g = code ? LinkGame.replay(code) : new F.Game(RADIUS, RULES);
     if (!g) return;                        // not a game we can reach legally: keep what we have
+    // Only a new game makes a game shorter. Anything else that arrives behind us is the broker
+    // handing back what it kept while we were offline -- and we moved since. Answer with ours.
+    if (code && game && g.history.length < game.history.length) return sync(game);
     abortThinking();
+    const over = document.getElementById('dlgOver');
+    if (over.open) over.close();           // they started another game; stop showing the last one
     game = g; geo = game.geo;
     selected = -1; busy = false; prediction = null; plan = []; lastInfo = null; evalInfo = null;
     swapUsed = !game.canSwap();
@@ -2503,9 +2560,14 @@ const Online = (function () {
     codeEl.hidden = !waiting || !room;
     codeEl.textContent = room ? room.slice(1).toUpperCase() : '';
     document.getElementById('linkTurn').textContent =
-      !peer ? t('roomNeedTwo')
+      !peer && !game.history.length ? t('roomNeedTwo')
       : game.over ? t('over')
       : game.toMove === colour() ? t('roomYourTurn') : t('roomTheirTurn');
+    document.getElementById('linkYou').textContent = t('youAre', t(colour() === 1 ? 'gold' : 'turq'));
+    // A rematch should not need another link: the room outlives the game in it.
+    const again = document.getElementById('btnRematch');
+    again.hidden = !game.over;
+    again.textContent = t('rematch');
     const share = document.getElementById('btnShare');
     share.disabled = status !== 'online';   // a link to a room we never reached helps nobody
     document.getElementById('btnShareText').textContent = t(peer ? 'shareBtn' : 'roomShare');

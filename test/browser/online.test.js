@@ -146,3 +146,141 @@ test('leaving the room puts the page back to a normal game', { timeout: LONG }, 
     await server.close();
   }
 });
+
+// ---- the awkward cases ----------------------------------------------------
+// These drive one real page and one relay client straight from Node, which is the only way to
+// say "now send exactly this" -- a second browser page will only ever send correct things.
+const Relay = require('../../src/relay.js');
+const code = (bytes) => Buffer.from(bytes).toString('base64')
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+const settle = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function hostPage(browser, server) {
+  const a = await open(browser, server.url + '/fawanees.html');
+  await a.evaluate(() => { window.__fw.newGame({ mode: 'online' }); window.__fw.online().host(); });
+  await until(a, "window.__fw.online().status === 'online'", LONG, 'host online');
+  return a;
+}
+
+function guest(room, onState) {
+  const seen = [];
+  const c = Relay.join({
+    room, seat: 'b',
+    onState: (s) => { seen.push(s); if (onState) onState(s); },
+  });
+  c.seen = seen;
+  return c;
+}
+
+const waitFor = async (fn, ms, what) => {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) { if (fn()) return; await settle(150); }
+  throw new Error('timed out waiting for ' + what);
+};
+
+test('a position that arrives from behind cannot rewind the game', { timeout: LONG * 2 }, async (t) => {
+  const server = await serve(DIST);
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  let g = null;
+  try {
+    const a = await hostPage(browser, server);
+    const room = await a.evaluate(() => window.__fw.online().room);
+    g = guest(room);
+    await until(a, 'window.__fw.online().peerHere', LONG, 'the page to see the guest');
+
+    // Two lanterns down, one from each side.
+    await a.evaluate(() => window.__fw.playMove(45));
+    await waitFor(() => g.seen.includes(code([45])), LONG, 'the guest to get the first move');
+    g.publish(code([45, 20]));
+    await until(a, 'window.__fw.game.history.length === 2', LONG, 'the page to take the reply');
+
+    // Now the broker hands back what it was holding while we were away -- one move behind.
+    // Taking it would silently undo a move that has already been played and seen.
+    g.publish(code([45]));
+    await settle(2500);
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.history.length), 2,
+      'the page must keep the longer history');
+    await waitFor(() => g.seen[g.seen.length - 1] === code([45, 20]), LONG,
+      'and must answer with it, so the device that fell behind catches up');
+
+    // A position no sequence of legal moves can reach is not a position.
+    const before = await a.evaluate(() => window.__fw.game.history.length);
+    g.publish(code([45, 45]));                       // a second lantern on an occupied cell
+    await settle(2000);
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.history.length), before,
+      'an impossible position should be ignored, not played');
+    g.publish('!!!not base64!!!');
+    await settle(1500);
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.history.length), before);
+    assert.deepStrictEqual(a.errors, []);
+  } catch (e) {
+    if (isBroker(e)) { t.skip('no public broker reachable from here: ' + e.message); return; }
+    throw e;
+  } finally {
+    try { g && g.leave(); } catch (e) {}
+    await browser.close();
+    await server.close();
+  }
+});
+
+test('reloading puts you back in your own chair, in the same game', { timeout: LONG * 2 }, async (t) => {
+  const server = await serve(DIST);
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  let g = null;
+  try {
+    const a = await hostPage(browser, server);
+    const room = await a.evaluate(() => window.__fw.online().room);
+    g = guest(room);
+    await until(a, 'window.__fw.online().peerHere', LONG, 'the page to see the guest');
+    await a.evaluate(() => window.__fw.playMove(45));
+    await waitFor(() => g.seen.includes(code([45])), LONG, 'the guest to get the move');
+    g.publish(code([45, 20]));
+    await until(a, 'window.__fw.game.history.length === 2', LONG, 'the reply to land');
+
+    await a.reload({ waitUntil: 'domcontentloaded' });
+    await a.waitForFunction('window.__fw && window.__fw.game');
+    await until(a, "window.__fw.online().status === 'online'", LONG, 'host online again');
+    assert.strictEqual(await a.evaluate(() => window.__fw.online().seat), 'a',
+      'a refresh must not move you into the other player\'s seat');
+    await until(a, 'window.__fw.game.history.length === 2', LONG, 'the position to come back');
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.board[45]), 1);
+    assert.strictEqual(await a.evaluate(() => window.__fw.online().colour()), 1);
+  } catch (e) {
+    if (isBroker(e)) { t.skip('no public broker reachable from here: ' + e.message); return; }
+    throw e;
+  } finally {
+    try { g && g.leave(); } catch (e) {}
+    await browser.close();
+    await server.close();
+  }
+});
+
+test('a rematch keeps the room, so the link does not have to be sent again', { timeout: LONG * 2 }, async (t) => {
+  const server = await serve(DIST);
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  let g = null;
+  try {
+    const a = await hostPage(browser, server);
+    const room = await a.evaluate(() => window.__fw.online().room);
+    g = guest(room);
+    await until(a, 'window.__fw.online().peerHere', LONG, 'the page to see the guest');
+    await a.evaluate(() => window.__fw.playMove(45));
+    await waitFor(() => g.seen.includes(code([45])), LONG, 'the guest to get the move');
+
+    await a.evaluate(() => window.__fw.newGame({ mode: 'online' }));
+    assert.strictEqual(await a.evaluate(() => window.__fw.online().room), room, 'same room');
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.history.length), 0, 'fresh board');
+    await waitFor(() => g.seen[g.seen.length - 1] === '', LONG, 'the other device to be reset too');
+    assert.strictEqual(await a.evaluate(() => window.__fw.online().peerHere), true,
+      'and to still be in the room afterwards');
+    assert.deepStrictEqual(a.errors, []);
+  } catch (e) {
+    if (isBroker(e)) { t.skip('no public broker reachable from here: ' + e.message); return; }
+    throw e;
+  } finally {
+    try { g && g.leave(); } catch (e) {}
+    await browser.close();
+    await server.close();
+  }
+});
