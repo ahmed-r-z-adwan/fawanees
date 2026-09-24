@@ -1,17 +1,17 @@
 {
  "what": "Does stopping the search when the next ply cannot finish cost playing strength?",
- "how": "node sim/earlyExit.js --budget 250 --branch 6 --replies 12",
+ "how": "node sim/earlyExit.js --budget 250 --branch 6 --replies 24",
  "date": "2026-09-24",
- "games": 96,
- "draws": 0,
- "earlyExitWinRate": 0.40625,
- "halfWidth95": 0.10002083116364643,
+ "games": 192,
+ "draws": 2,
+ "earlyExitWinRate": 0.390625,
+ "halfWidth95": 0.07072540797572915,
  "earlyExit": {
-  "msPerMove": 121.25,
+  "msPerMove": 114.05,
   "depthAvg": 3.96
  },
  "fullBudget": {
-  "msPerMove": 232.4,
-  "depthAvg": 3.94
+  "msPerMove": 232.8,
+  "depthAvg": 3.97
  }
 }

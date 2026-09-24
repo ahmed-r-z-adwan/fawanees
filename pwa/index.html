@@ -1061,7 +1061,9 @@ window.FawaneesOpening = {
 const F = window.Fawanees;
 const RULES = { K: 3, restrict: false, supply: 24, range: 2 };
 const RADIUS = 5;
-// Time budgets are set in docs/REPORT.md from a measurement on a throttled mid-range phone.
+// Time budgets, checked against a throttled phone-class core in docs/SPEED.md: Master answers in
+// 1.006 s at worst there, against a 1.5 s requirement, so none of these needed changing.
+// Novice and Skilled are capped at depth 1 and 2, so they return in milliseconds regardless.
 const LEVELS = [
   { name: 'lv0', ms: 120, depth: 1, noise: 3.0 },
   { name: 'lv1', ms: 350, depth: 2, noise: 0.8 },
