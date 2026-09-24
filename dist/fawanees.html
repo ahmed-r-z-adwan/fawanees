@@ -551,8 +551,17 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         closed = true;
         clearInterval(ping); clearTimeout(retry); clearTimeout(guard);
         if (live) { send(publishPacket(mine, '0:' + token, true)); send(DISCONNECT); }
-        try { ws && ws.close(); } catch (e) {}
+        const sock = ws;
         ws = null; live = false;
+        if (sock) {
+          sock.onmessage = null; sock.onclose = null; sock.onerror = () => {};
+          // Closing a socket that is still opening is reported as a console error by WebKit, and
+          // a host racing the brokers closes two of them at exactly that moment -- an error in
+          // the page's console for something that is working as intended. Let it finish opening
+          // and close it then; nothing is ever sent on it either way.
+          if (sock.readyState === 0) sock.onopen = () => { try { sock.close(); } catch (e) {} };
+          else { try { sock.close(); } catch (e) {} }
+        }
         if (peerOnline) { peerOnline = false; say('onPeer', false); }
         say('onStatus', 'offline');
       },
