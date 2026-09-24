@@ -13,6 +13,8 @@ SOURCES = (
     ('/*ENGINE*/', 'src/engine.js'),
     ('/*WORKER*/', 'src/worker.js'),
     ('/*LESSONS*/', 'src/lessons.js'),
+    ('/*PUZZLES*/', 'src/puzzles.js'),
+    ('/*PUZZLEUI*/', 'src/puzzleui.js'),
     ('/*TUTORIAL*/', 'src/tutorial.js'),
     ('/*CALIBRATION*/', 'src/calibration.js'),
     ('/*OPENING*/', 'src/opening.js'),

@@ -31,15 +31,26 @@ test('puzzle mode: wrong cells are refused with a measured reason, the answer pl
     for (const n of [0, 1, Math.floor(count / 2), count - 1]) {
       await page.evaluate(i => window.__fw.puzzles().open(i), n);
       assert.strictEqual(await page.evaluate(() => window.__fw.puzzles().stage), 'task');
-      const box = await (await page.$('#puzzleBoard')).boundingBox();
-      const [ax, ay] = await page.evaluate(() => window.__fw.puzzles().answerXY());
+      // Re-measure before every click: if the dialog ever resizes, a stale box silently clicks
+      // the wrong cell, and the test would be testing nothing.
+      const clickCell = async (dx) => {
+        const box = await (await page.$('#puzzleBoard')).boundingBox();
+        const [ax, ay] = await page.evaluate(() => window.__fw.puzzles().answerXY());
+        await page.mouse.click(box.x + Math.max(6, ax + dx * box.width), box.y + ay);
+        return box;
+      };
 
       // a cell that is not the answer must not solve it
-      await page.mouse.click(box.x + Math.max(6, ax - box.width * 0.25), box.y + ay);
+      const before = await clickCell(-0.25);
       assert.strictEqual(await page.evaluate(() => window.__fw.puzzles().stage), 'task',
         `puzzle ${n + 1}: a wrong cell must not count as solved`);
 
-      await page.mouse.click(box.x + ax, box.y + ay);
+      // and showing the feedback must not have moved the board
+      const after = await (await page.$('#puzzleBoard')).boundingBox();
+      assert.deepStrictEqual([after.x, after.y, after.width, after.height], [before.x, before.y, before.width, before.height],
+        `puzzle ${n + 1}: the board moved when the feedback appeared`);
+
+      await clickCell(0);
       assert.strictEqual(await page.evaluate(() => window.__fw.puzzles().stage), 'result',
         `puzzle ${n + 1}: the answer should solve it`);
 

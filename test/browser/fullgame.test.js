@@ -28,7 +28,9 @@ async function playFullGame(t, { level, local }) {
     await page.waitForFunction("window.__fw.aiMode !== 'pending'", { timeout: 20000 });
     if (local) await page.evaluate(() => window.__fw.forceLocalAI());
 
-    // no horizontal scrolling on a phone
+    // no horizontal scrolling on a phone. Wait for the webfont first: the header wraps differently
+    // in the fallback font, and measuring before it settles made this assertion flake.
+    await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 1, `the page should fit a 390px screen, overflows by ${overflow}px`);
 

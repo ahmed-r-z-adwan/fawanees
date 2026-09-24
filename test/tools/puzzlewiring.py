@@ -48,6 +48,7 @@ DIALOG = '''<dialog id="dlgPuzzle" class="learn">
     <div class="learn-boardwrap"><canvas id="puzzleBoard"></canvas></div>
     <div class="learn-text">
       <div id="puzzleBody"></div>
+      <div class="learn-note" id="puzzleNote"></div>
       <div class="dialog-actions">
         <button class="btn" id="puzzleBack">السابق</button>
         <button class="btn" id="puzzleHint">تلميح</button>

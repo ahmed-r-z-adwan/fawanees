@@ -78,12 +78,15 @@ dialog.learn { max-width: min(880px, 94vw); width: min(880px, 94vw); }
 .learn-step { color: var(--muted); font-size: 13px; }
 .learn-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; align-items: start; }
 .learn-boardwrap { background: rgba(21, 17, 42, .5); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px; }
-canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-action: manipulation; cursor: pointer; }
+canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-action: manipulation; cursor: pointer; }
 .learn-side { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
 .learn-text p { margin: 0 0 10px; }
 .learn-text .learn-task { color: #ffe2a0; font-weight: 700; }
 .learn-text .learn-result { color: var(--text); border-inline-start: 3px solid var(--amber); padding-inline-start: 10px; }
 .learn-hint { color: var(--muted); font-size: 13px; min-height: 18px; }
+/* Space is reserved so feedback appearing cannot resize the dialog: a centred <dialog> that
+   grows slides the board out from under the player's finger mid-tap. */
+.learn-note { color: #ffe2a0; font-size: 14px; min-height: 3.2em; margin-bottom: 4px; }
 @media (max-width: 720px) { .learn-grid { grid-template-columns: 1fr; } dialog.learn { padding: 14px; } }
 @media (max-width: 460px) {
   /* five buttons and a strapline do not both fit on a phone; the buttons win. */
@@ -108,6 +111,7 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
     <div class="brand"><h1 data-i18n="title">فوانيس</h1><p data-i18n="tagline">لعبة ضوء وظل اخترعها ذكاء اصطناعي</p></div>
     <div class="top-actions">
       <button class="btn" id="btnLearn" data-i18n="learn">تعلّم</button>
+      <button class="btn" id="btnPuzzle" data-i18n="puzzles">ألغاز</button>
       <button class="btn" id="btnRules" data-i18n="rules">القواعد</button>
       <button class="btn" id="btnNew" data-i18n="newGame">لعبة جديدة</button>
       <button class="btn" id="btnLang" aria-label="Language">EN</button>
@@ -190,6 +194,31 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
   </div>
 </dialog>
 
+<dialog id="dlgPuzzle" class="learn">
+  <div class="learn-head">
+    <div>
+      <div class="learn-step" id="puzzleStep"></div>
+      <h2 data-i18n="puzzles">ألغاز</h2>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="learn-step" id="puzzleCount"></span>
+      <button class="btn" id="puzzleClose" data-close>إغلاق</button>
+    </div>
+  </div>
+  <div class="learn-grid">
+    <div class="learn-boardwrap"><canvas id="puzzleBoard"></canvas></div>
+    <div class="learn-text">
+      <div id="puzzleBody"></div>
+      <div class="learn-note" id="puzzleNote"></div>
+      <div class="dialog-actions">
+        <button class="btn" id="puzzleBack">السابق</button>
+        <button class="btn" id="puzzleHint">تلميح</button>
+        <button class="btn primary" id="puzzleNext">اللغز التالي</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="dlgRules">
   <h2 data-i18n="rules">القواعد</h2>
   <div id="rulesBody"></div>
@@ -221,6 +250,9 @@ canvas#learnBoard { width: 100%; aspect-ratio: 11 / 12; display: block; touch-ac
 /*LESSONS*/
 </script>
 <script>
+/*PUZZLES*/
+</script>
+<script>
 /*CALIBRATION*/
 </script>
 <script>
@@ -250,7 +282,7 @@ const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: r
 // ---------------- i18n ----------------
 const T = {
   ar: {
-    title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', learn: 'تعلّم', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
+    title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
     showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
     credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة: أحمد عدوان.', how: 'كيف صُنعت؟',
     mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على جهاز واحد', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
@@ -294,7 +326,7 @@ const T = {
 <p>هذه نسخة تجريبية.</p>`,
   },
   en: {
-    title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', learn: 'Learn', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
+    title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
     showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
     credit: 'Rules, balancing and AI by Claude (Anthropic). Idea by Ahmed Adwan.', how: 'How was it made?',
     mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players, one device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
@@ -349,6 +381,7 @@ function applyLang() {
   document.getElementById('rulesBody').innerHTML = t('rulesHtml');
   document.getElementById('howBody').innerHTML = t('howHtml');
   if (typeof Tutorial !== 'undefined') Tutorial.relabel();
+  if (typeof Puzzles !== 'undefined') Puzzles.relabel();
   updatePanel();
 }
 
@@ -927,6 +960,7 @@ document.getElementById('btnUndo').onclick = () => {
 document.getElementById('btnLang').onclick = () => { lang = lang === 'ar' ? 'en' : 'ar'; try { localStorage.setItem('fw-lang', lang); } catch (e) {} applyLang(); draw(); };
 document.getElementById('btnRules').onclick = () => document.getElementById('dlgRules').showModal();
 document.getElementById('btnLearn').onclick = () => Tutorial.open(0);
+document.getElementById('btnPuzzle').onclick = () => Puzzles.open();
 document.getElementById('linkHow').onclick = e => {
   e.preventDefault();
   document.getElementById('howEngine').textContent = AI.mode === 'worker' ? t('engineThread') : AI.mode === 'local' ? t('engineMain') : '';
@@ -959,9 +993,12 @@ window.__fw = {
   setLevelMs: (i, ms) => { LEVELS[i].ms = ms; },
   forceLocalAI: () => AI.forceLocal(),
   tutorial: () => Tutorial,
+  puzzles: () => Puzzles,
 };
 
 /*TUTORIAL*/
+
+/*PUZZLEUI*/
 
 drawIcons();
 newGame({ mode: 'ai', level: 2, human: 1 });

@@ -240,42 +240,67 @@ asserts that the single file makes no request to anything but Google Fonts.
 
 ---
 
-## 8. The machine's own puzzles — not finished
+## 8. The machine's own puzzles
 
-**Not shipped.** The build does not contain puzzle mode and does not reference it.
+**Before:** nothing. This is the feature I chose.
 
-What exists: `sim/minePuzzles.js` searches self-play games for positions where one move flips at
-least three lanterns, is at least five points better than every other move at depth 4 by exact root
-values, and is not the move a depth-1 search would play; it then re-checks each survivor a ply
-deeper with a fresh engine and folds away the board's twelve symmetries and the colour swap.
-`src/puzzleui.js` is the player for them, reusing the tutorial's board renderer.
-`test/unit/puzzles.test.js` and `test/browser/puzzles.test.js` are written and currently skip.
+**After:** sixteen puzzles, none of them composed. The machine played itself 700 times, looked at
+every position it passed through, and kept the moments where a single move decides things.
 
-What is missing: the mining run itself, which takes roughly half an hour. A smoke run over 8 games
-found 2 qualifying positions (margins 7 and 12 points, chains of 3 lanterns in 2 and 3 waves,
-swings of 18 and 19 points), so the yield is about one puzzle per four games and 1,200 games should
-produce plenty.
+A position qualifies only if all of this holds:
 
-To finish it:
+- some move flips at least three lanterns immediately;
+- that move is at least five points better than *every* other move at depth 4, using
+  `rootScoresExact` so the values are genuinely comparable rather than alpha-beta's upper bounds;
+- a depth-1 search does **not** find it, so it is not obvious.
 
-```
-node sim/minePuzzles.js --games 1200 --keep 16 --threads 12
-python test/tools/puzzlewiring.py on
-python build.py
-npm test
-```
+Survivors are then re-searched a ply deeper with a fresh engine and must give the same answer with
+a margin of at least four. Duplicates are removed under the board's twelve symmetries *and* under
+swapping the colours, so no two puzzles are the same position wearing a different hat.
+
+| | |
+|---|---|
+| games played | 700 |
+| positions examined | 25,934 |
+| candidates | 40 |
+| distinct after symmetry and colour | 40 |
+| survived the depth-5 recheck | 31 |
+| kept, spread across difficulty | **16** |
+| time to mine | 210 s on 10 threads |
+
+Each puzzle carries what it is worth, measured: how many lanterns flip and in how many waves, how
+many points the position swings, how much worse the next best move is, and **the shallowest search
+depth that finds the answer** — 2, 3 or 4 across the set. That last number is the difficulty, and it
+is an honestly machine-native one: *a machine looking three moves ahead is the first to see this*.
+The set ranges from a 3-lantern chain worth 17 points that a two-ply search spots, to a 4-lantern
+chain worth 28 points that needs three, to one that needs four.
+
+The player taps a cell; a wrong one is refused with the real reason ("that move flips 1, there is a
+move that flips 3"), computed by the engine on the spot rather than looked up.
+
+**A bug this found.** The feedback line used to be appended to the dialog, which made the dialog
+taller. A `<dialog>` is centred, so it grew upwards and slid the board out from under the player's
+finger — on a phone the next tap landed a cell away. The note now has its own element with reserved
+height, and the test asserts the board does not move when feedback appears.
+
+**Verification:** `test/unit/puzzles.test.js` re-derives every shipped puzzle from scratch — that the
+answer is the unique best move at the verification depth, that the recorded waves are exactly what
+the engine produces, that the advertised swing is the real change in score, and that the claimed
+difficulty is true in both directions (a shallower search must *not* find it, and the stated depth
+must). `test/browser/puzzles.test.js` plays through the set on a phone viewport.
 
 ---
 
 ## What is ready and what is not
 
-**Ready and verified:** steps 1, 2, 3, 4, 5, 6, 7. `dist/fawanees.html` is one self-contained file
+**Ready and verified:** all eight steps. `dist/fawanees.html` is one self-contained file
 that plays, teaches, never freezes, answers in about a second on a phone, and shows a win chance
 that has been checked against 35,358 held-out positions. `pwa/` is the same page, installable and
-playable offline. `npm test` is 46 unit tests and 17 browser tests, all passing.
+playable offline. `npm test` is 65 unit tests and 19 browser tests, all passing.
 
-**Not ready:** step 8, puzzle mode, described above. It is wired out of the build behind a
-reversible switch, so nothing half-finished reaches a player.
+**Known flake:** `fullgame.test.js` failed once in three suite runs and could not be reproduced
+alone or in two further suite runs. The most likely cause was measuring page overflow before the
+webfont settled, which is now waited on. If it recurs, that is the first place to look.
 
 **Open questions, none of them blocking:**
 

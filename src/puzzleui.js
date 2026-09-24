@@ -124,6 +124,8 @@ const Puzzles = (function () {
 
   function render(note) {
     const T = tx();
+    // The note lives in its own element with reserved height, so showing it never moves the board.
+    document.getElementById('puzzleNote').textContent = note || '';
     document.getElementById('puzzleStep').textContent = T.of(idx + 1, DATA.list.length);
     document.getElementById('puzzleCount').textContent = T.counter(solved.size, DATA.list.length);
     const body = document.getElementById('puzzleBody');
@@ -133,7 +135,6 @@ const Puzzles = (function () {
       add(T.task(pz.side), 'learn-task');
       add(T.intro(DATA.games));
       if (hinted) add(T.hintText(pz.flips));
-      if (note) add(note, 'learn-result');
     } else {
       add(hinted ? T.solvedHinted : T.solvedNoHint, 'learn-task');
       T.result(pz.flips, pz.waves.length, pz.swing, pz.margin).forEach(l => add(l, 'learn-result'));

@@ -1,0 +1,393 @@
+{
+ "what": "Puzzles mined from the machine's own self-play, each one a position where a single move is decisive.",
+ "how": "node sim/minePuzzles.js --games 700 --keep 16",
+ "date": "2026-09-24",
+ "filter": "a move that flips at least 3 lanterns straight away, is at least 5 points better than every other move at depth 4, and is not the move a depth-1 search would play",
+ "verification": "re-searched at depth 5 with a fresh engine: same answer, margin still at least 4",
+ "games": 700,
+ "positionsScanned": 25934,
+ "candidates": 40,
+ "distinct": 40,
+ "verified": 31,
+ "droppedOnRecheck": 9,
+ "kept": 16,
+ "seconds": 210,
+ "spread": {
+  "margin": {
+   "min": 6,
+   "median": 12,
+   "max": 28
+  },
+  "flips": {
+   "min": 3,
+   "median": 3,
+   "max": 5
+  },
+  "difficulty": {
+   "min": 2,
+   "median": 3,
+   "max": 4
+  },
+  "lanterns": {
+   "min": 15,
+   "median": 36,
+   "max": 42
+  }
+ },
+ "puzzles": [
+  {
+   "answer": "-1,-1",
+   "side": 2,
+   "flips": 3,
+   "margin": 17,
+   "verifyMargin": 19,
+   "difficulty": 2,
+   "swing": 13,
+   "lanterns": 15,
+   "waves": [
+    [
+     "-1,0",
+     "0,-1"
+    ],
+    [
+     "-2,0"
+    ]
+   ],
+   "secondBest": "1,-2"
+  },
+  {
+   "answer": "2,0",
+   "side": 1,
+   "flips": 3,
+   "margin": 13,
+   "verifyMargin": 12,
+   "difficulty": 2,
+   "swing": 15,
+   "lanterns": 26,
+   "waves": [
+    [
+     "0,1",
+     "3,0"
+    ],
+    [
+     "1,0"
+    ]
+   ],
+   "secondBest": "1,-1"
+  },
+  {
+   "answer": "0,-1",
+   "side": 2,
+   "flips": 3,
+   "margin": 13,
+   "verifyMargin": 10,
+   "difficulty": 2,
+   "swing": 15,
+   "lanterns": 37,
+   "waves": [
+    [
+     "-1,-1"
+    ],
+    [
+     "-3,1",
+     "-1,0"
+    ]
+   ],
+   "secondBest": "-2,0"
+  },
+  {
+   "answer": "-1,-1",
+   "side": 1,
+   "flips": 3,
+   "margin": 12,
+   "verifyMargin": 11,
+   "difficulty": 2,
+   "swing": 11,
+   "lanterns": 36,
+   "waves": [
+    [
+     "-1,0",
+     "0,-1"
+    ],
+    [
+     "-2,0"
+    ]
+   ],
+   "secondBest": "0,-2"
+  },
+  {
+   "answer": "-2,-2",
+   "side": 2,
+   "flips": 3,
+   "margin": 12,
+   "verifyMargin": 7,
+   "difficulty": 2,
+   "swing": 11,
+   "lanterns": 37,
+   "waves": [
+    [
+     "-2,-1"
+    ],
+    [
+     "-3,0"
+    ],
+    [
+     "-2,0"
+    ]
+   ],
+   "secondBest": "-3,2"
+  },
+  {
+   "answer": "-3,1",
+   "side": 2,
+   "flips": 3,
+   "margin": 11,
+   "verifyMargin": 12,
+   "difficulty": 2,
+   "swing": 13,
+   "lanterns": 29,
+   "waves": [
+    [
+     "-2,1"
+    ],
+    [
+     "-1,1"
+    ],
+    [
+     "0,1"
+    ]
+   ],
+   "secondBest": "-3,-1"
+  },
+  {
+   "answer": "-3,-1",
+   "side": 2,
+   "flips": 4,
+   "margin": 16,
+   "verifyMargin": 15,
+   "difficulty": 2,
+   "swing": 17,
+   "lanterns": 29,
+   "waves": [
+    [
+     "-3,0"
+    ],
+    [
+     "-2,0"
+    ],
+    [
+     "-2,-1"
+    ],
+    [
+     "-1,-1"
+    ]
+   ],
+   "secondBest": "0,-1"
+  },
+  {
+   "answer": "2,2",
+   "side": 1,
+   "flips": 5,
+   "margin": 8,
+   "verifyMargin": 5,
+   "difficulty": 2,
+   "swing": 11,
+   "lanterns": 38,
+   "waves": [
+    [
+     "-1,-4",
+     "3,2"
+    ],
+    [
+     "2,3"
+    ],
+    [
+     "1,4"
+    ],
+    [
+     "0,5"
+    ]
+   ],
+   "secondBest": "1,2"
+  },
+  {
+   "answer": "-1,-2",
+   "side": 1,
+   "flips": 3,
+   "margin": 10,
+   "verifyMargin": 8,
+   "difficulty": 3,
+   "swing": 12,
+   "lanterns": 42,
+   "waves": [
+    [
+     "0,-3"
+    ],
+    [
+     "0,-2"
+    ],
+    [
+     "0,-1"
+    ]
+   ],
+   "secondBest": "-4,0"
+  },
+  {
+   "answer": "-3,-1",
+   "side": 1,
+   "flips": 3,
+   "margin": 10,
+   "verifyMargin": 11,
+   "difficulty": 3,
+   "swing": 13,
+   "lanterns": 36,
+   "waves": [
+    [
+     "-2,-1"
+    ],
+    [
+     "-2,0"
+    ],
+    [
+     "-3,0"
+    ]
+   ],
+   "secondBest": "-4,-1"
+  },
+  {
+   "answer": "-5,1",
+   "side": 2,
+   "flips": 3,
+   "margin": 9,
+   "verifyMargin": 5,
+   "difficulty": 3,
+   "swing": 14,
+   "lanterns": 35,
+   "waves": [
+    [
+     "-5,2",
+     "1,2"
+    ],
+    [
+     "-4,1"
+    ]
+   ],
+   "secondBest": "-5,3"
+  },
+  {
+   "answer": "2,-4",
+   "side": 1,
+   "flips": 3,
+   "margin": 8,
+   "verifyMargin": 12,
+   "difficulty": 3,
+   "swing": 10,
+   "lanterns": 40,
+   "waves": [
+    [
+     "2,-3",
+     "3,-4"
+    ],
+    [
+     "1,-3"
+    ]
+   ],
+   "secondBest": "0,-4"
+  },
+  {
+   "answer": "-2,-2",
+   "side": 2,
+   "flips": 3,
+   "margin": 8,
+   "verifyMargin": 7,
+   "difficulty": 3,
+   "swing": 12,
+   "lanterns": 41,
+   "waves": [
+    [
+     "-1,-2"
+    ],
+    [
+     "-1,-1"
+    ],
+    [
+     "-2,-1"
+    ]
+   ],
+   "secondBest": "-1,1"
+  },
+  {
+   "answer": "3,-2",
+   "side": 1,
+   "flips": 4,
+   "margin": 28,
+   "verifyMargin": 32,
+   "difficulty": 3,
+   "swing": 24,
+   "lanterns": 30,
+   "waves": [
+    [
+     "2,-2"
+    ],
+    [
+     "2,-1"
+    ],
+    [
+     "0,1",
+     "2,0"
+    ]
+   ],
+   "secondBest": "4,-5"
+  },
+  {
+   "answer": "-2,-1",
+   "side": 1,
+   "flips": 5,
+   "margin": 12,
+   "verifyMargin": 17,
+   "difficulty": 3,
+   "swing": 14,
+   "lanterns": 26,
+   "waves": [
+    [
+     "-3,0"
+    ],
+    [
+     "-3,-1"
+    ],
+    [
+     "-4,0"
+    ],
+    [
+     "-4,-1"
+    ],
+    [
+     "-5,0"
+    ]
+   ],
+   "secondBest": "-1,4"
+  },
+  {
+   "answer": "-1,1",
+   "side": 2,
+   "flips": 3,
+   "margin": 6,
+   "verifyMargin": 5,
+   "difficulty": 4,
+   "swing": 17,
+   "lanterns": 38,
+   "waves": [
+    [
+     "-2,1"
+    ],
+    [
+     "-3,1"
+    ],
+    [
+     "-3,0"
+    ]
+   ],
+   "secondBest": "3,-2"
+  }
+ ]
+}
