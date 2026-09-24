@@ -73,5 +73,29 @@ function packIco(pngs) {
     fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
     fs.writeFileSync(path.join(root, 'dist', 'fawanees.ico'), ico);
     console.log(`fawanees.ico  ${icoSizes.join(', ')}  ${(ico.length / 1024).toFixed(1)} KB`);
+
+    // The card a chat app shows when someone pastes the link. Without it the link is a bare box.
+    const og = await browser.newPage();
+    await og.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
+    await og.setContent(`<!doctype html><meta charset="utf-8">
+<style>
+  html,body{margin:0;height:100%}
+  body{background:radial-gradient(120% 90% at 50% 20%,#251d49 0%,#15112a 55%,#0f0c1f 100%);
+       display:flex;align-items:center;justify-content:center;gap:56px;
+       font-family:"Segoe UI",system-ui,sans-serif;direction:rtl}
+  svg{width:240px;height:240px;filter:drop-shadow(0 0 60px rgba(242,180,71,.45))}
+  .t{color:#f6ead0}
+  h1{margin:0;font-size:104px;line-height:1;font-weight:700}
+  p{margin:18px 0 0;font-size:34px;color:#a39cc4}
+  .c{margin:26px 0 0;font-size:22px;color:#7e77a3}
+</style>
+<div>${svg}</div>
+<div class="t"><h1>&#x641;&#x648;&#x627;&#x646;&#x64a;&#x633;</h1>
+<p>&#x644;&#x639;&#x628;&#x629; &#x636;&#x648;&#x621; &#x648;&#x638;&#x644; &#x627;&#x62e;&#x62a;&#x631;&#x639;&#x647;&#x627; &#x630;&#x643;&#x627;&#x621; &#x627;&#x635;&#x637;&#x646;&#x627;&#x639;&#x64a;</p>
+<p class="c">A game of light and shadow, invented by an AI</p></div>`, { waitUntil: 'load' });
+    const ogBuf = await og.screenshot({ type: 'png' });
+    fs.writeFileSync(path.join(root, 'pwa', 'og.png'), ogBuf);
+    await og.close();
+    console.log(`og.png  1200x630  ${(ogBuf.length / 1024).toFixed(1)} KB`);
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });

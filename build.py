@@ -20,16 +20,27 @@ SOURCES = (
     ('/*OPENING*/', 'src/opening.js'),
 )
 
+SITE = 'https://ahmed-r-z-adwan.github.io/fawanees/'
+
 PWA_HEAD = (
     '<link rel="manifest" href="manifest.webmanifest">\n'
-    # iOS ignores the web manifest when a page is added to the home screen; it reads these instead.
-    # Its icon must be 180 and opaque, because iOS rounds the corners itself and renders any
+    # iOS ignores the web manifest when a page is added to the home screen; it reads these
+    # instead. Its icon must be 180 and opaque: iOS rounds the corners itself and renders any
     # transparency as black.
     '<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">\n'
     '<meta name="apple-mobile-web-app-capable" content="yes">\n'
     '<meta name="mobile-web-app-capable" content="yes">\n'
     '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n'
-    '<meta name="apple-mobile-web-app-title" content="فوانيس">'
+    '<meta name="apple-mobile-web-app-title" content="فوانيس">\n'
+    # Without these a shared link is a bare box in a chat app rather than a card.
+    '<meta property="og:type" content="website">\n'
+    '<meta property="og:title" content="فوانيس · Fawanees">\n'
+    '<meta property="og:description" content="لعبة ضوء وظل اخترعها ذكاء اصطناعي · A game of light and shadow, invented by an AI">\n'
+    f'<meta property="og:url" content="{SITE}">\n'
+    f'<meta property="og:image" content="{SITE}og.png">\n'
+    '<meta property="og:image:width" content="1200">\n'
+    '<meta property="og:image:height" content="630">\n'
+    '<meta name="twitter:card" content="summary_large_image">'
 )
 
 PWA_SCRIPT = (

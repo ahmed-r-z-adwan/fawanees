@@ -11,6 +11,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="فوانيس">
+<meta property="og:type" content="website">
+<meta property="og:title" content="فوانيس · Fawanees">
+<meta property="og:description" content="لعبة ضوء وظل اخترعها ذكاء اصطناعي · A game of light and shadow, invented by an AI">
+<meta property="og:url" content="https://ahmed-r-z-adwan.github.io/fawanees/">
+<meta property="og:image" content="https://ahmed-r-z-adwan.github.io/fawanees/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <title>فوانيس</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%2315112a%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2235%22%20r%3D%2221%22%20fill%3D%22%23f2b447%22%20opacity%3D%22.22%22%2F%3E%3Crect%20x%3D%2229.5%22%20y%3D%223%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%23f2b447%22%2F%3E%3Cpath%20d%3D%22M32%208l7%209H25z%22%20fill%3D%22%23f2b447%22%2F%3E%3Cpath%20d%3D%22M22%2018h20l4%2014-4%2016H22l-4-16z%22%20fill%3D%22%23ffe9b8%22%20stroke%3D%22%23f2b447%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%3Crect%20x%3D%2219%22%20y%3D%2248%22%20width%3D%2226%22%20height%3D%225%22%20rx%3D%222%22%20fill%3D%22%23f2b447%22%2F%3E%3C%2Fsvg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -78,6 +86,8 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
   cursor: pointer; padding: 2px 6px; }
 .linkbar { display: flex; align-items: center; gap: 10px; }
 .linkbar .linkturn { flex: 1 1 auto; font-weight: 700; }
+#btnShare { display: inline-flex; align-items: center; gap: 7px; }
+#btnShare svg { flex: 0 0 auto; }
 footer { margin-top: 18px; color: #7e77a3; font-size: 13px; text-align: center; }
 footer a { color: var(--muted); }
 dialog { background: #1e1938; color: var(--text); border: 1px solid var(--line); border-radius: 18px; padding: 20px; max-width: min(560px, 92vw); max-height: 86vh; overflow: auto; }
@@ -159,7 +169,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       </div>
       <div class="card linkbar" id="linkBar" hidden>
         <div class="linkturn" id="linkTurn"></div>
-        <button class="btn primary" id="btnShare"></button>
+        <button class="btn primary" id="btnShare"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg><span id="btnShareText"></span></button>
       </div>
       <div class="toggles card">
         <label><input type="checkbox" id="optThoughts" checked> <span data-i18n="showThoughts">أظهر خطة الآلة على اللوح</span></label>
@@ -1732,7 +1742,7 @@ function updatePanel(extra) {
     bar.hidden = false;
     document.getElementById('linkTurn').textContent = game.over
       ? t('over') : t('shareTurn', t(game.toMove === 1 ? 'gold' : 'turq'));
-    document.getElementById('btnShare').textContent = t('shareBtn');
+    document.getElementById('btnShareText').textContent = t('shareBtn');
   } else {
     bar.hidden = true;
   }

@@ -73,6 +73,8 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
   cursor: pointer; padding: 2px 6px; }
 .linkbar { display: flex; align-items: center; gap: 10px; }
 .linkbar .linkturn { flex: 1 1 auto; font-weight: 700; }
+#btnShare { display: inline-flex; align-items: center; gap: 7px; }
+#btnShare svg { flex: 0 0 auto; }
 footer { margin-top: 18px; color: #7e77a3; font-size: 13px; text-align: center; }
 footer a { color: var(--muted); }
 dialog { background: #1e1938; color: var(--text); border: 1px solid var(--line); border-radius: 18px; padding: 20px; max-width: min(560px, 92vw); max-height: 86vh; overflow: auto; }
@@ -154,7 +156,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       </div>
       <div class="card linkbar" id="linkBar" hidden>
         <div class="linkturn" id="linkTurn"></div>
-        <button class="btn primary" id="btnShare"></button>
+        <button class="btn primary" id="btnShare"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg><span id="btnShareText"></span></button>
       </div>
       <div class="toggles card">
         <label><input type="checkbox" id="optThoughts" checked> <span data-i18n="showThoughts">أظهر خطة الآلة على اللوح</span></label>
@@ -833,7 +835,7 @@ function updatePanel(extra) {
     bar.hidden = false;
     document.getElementById('linkTurn').textContent = game.over
       ? t('over') : t('shareTurn', t(game.toMove === 1 ? 'gold' : 'turq'));
-    document.getElementById('btnShare').textContent = t('shareBtn');
+    document.getElementById('btnShareText').textContent = t('shareBtn');
   } else {
     bar.hidden = true;
   }

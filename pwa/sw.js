@@ -1,12 +1,12 @@
 // Service worker for the installable copy. The whole game is one HTML file, so "offline" means
 // keeping that file, the manifest and the icons; the fonts are picked up the first time they load.
 // VERSION is rewritten by build.py from a hash of the page, so a new build replaces the old cache.
-const VERSION = 'bae39fafcf7a';
+const VERSION = 'b5aa357dc49f';
 const SHELL = `fawanees-${VERSION}`;
 const FONTS = 'fawanees-fonts';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest',
                      './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png',
-                     './icons/apple-touch-icon.png'];
+                     './icons/apple-touch-icon.png', './og.png'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (e) => {
