@@ -284,3 +284,43 @@ test('a rematch keeps the room, so the link does not have to be sent again', { t
     await server.close();
   }
 });
+
+test('the swap rule and passing cross between devices', { timeout: LONG * 2 }, async (t) => {
+  const server = await serve(DIST);
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  let g = null;
+  try {
+    const a = await hostPage(browser, server);
+    const room = await a.evaluate(() => window.__fw.online().room);
+    g = guest(room);
+    await until(a, 'window.__fw.online().peerHere', LONG, 'the page to see the guest');
+
+    await a.evaluate(() => window.__fw.playMove(45));
+    await waitFor(() => g.seen.includes(code([45])), LONG, 'the opening lantern to cross');
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.toMove), 2, 'turquoise to answer');
+
+    // The second player takes the opening lantern instead of answering it (92 is the swap).
+    g.publish(code([45, 92]));
+    await until(a, 'window.__fw.game.history.length === 2', LONG, 'the swap to arrive');
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.board[45]), 2,
+      'the opening lantern should now belong to the player who took it');
+    assert.strictEqual(await a.evaluate(() => window.__fw.game.toMove), 1,
+      'and the opener moves again');
+    assert.strictEqual(await a.evaluate(() => document.getElementById('btnSwap').hidden), true,
+      'the offer is gone once it has been taken');
+
+    // Passing (91) crosses just as well.
+    await a.evaluate(() => window.__fw.playMove(-1));
+    await waitFor(() => g.seen.includes(code([45, 92, 91])), LONG, 'the pass to cross');
+    g.publish(code([45, 92, 91, 30]));
+    await until(a, 'window.__fw.game.board[30] === 2', LONG, 'the reply to the pass');
+    assert.deepStrictEqual(a.errors, []);
+  } catch (e) {
+    if (isBroker(e)) { t.skip('no public broker reachable from here: ' + e.message); return; }
+    throw e;
+  } finally {
+    try { g && g.leave(); } catch (e) {}
+    await browser.close();
+    await server.close();
+  }
+});

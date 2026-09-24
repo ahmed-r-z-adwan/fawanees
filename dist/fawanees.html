@@ -58,6 +58,7 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
 .controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .controls .btn { flex: 1 1 auto; }
 .toggles { display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 14px; }
+.toggles[hidden] { display: none; }   /* the attribute alone loses to the display above */
 .toggles label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 /* Offered once, only when the browser says the page can actually be installed. */
 .install { position: fixed; inset-inline: 10px; z-index: 50; display: none;
@@ -73,7 +74,6 @@ canvas#board { width: 100%; aspect-ratio: 17 / 19.4; display: block; touch-actio
   cursor: pointer; padding: 2px 6px; }
 .linkbar { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
 .linkbar .linkturn { font-weight: 700; }
-.linkbar .linkyou { font-size: 13px; color: var(--muted); margin-top: -6px; }
 .linkbar .linkrow { display: flex; gap: 8px; }
 .linkbar .linkrow .btn { flex: 1 1 auto; }
 #btnShare { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
@@ -175,14 +175,13 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         <div class="peer" id="peerRow" hidden><span class="dot"></span><span id="peerText"></span></div>
         <div class="roomcode" id="roomCode" hidden></div>
         <div class="linkturn" id="linkTurn"></div>
-        <div class="linkyou" id="linkYou"></div>
         <div class="linkrow">
           <button class="btn primary" id="btnShare"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 13v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg><span id="btnShareText"></span></button>
           <button class="btn primary" id="btnRematch" hidden></button>
           <button class="btn" id="btnLeave" hidden></button>
         </div>
       </div>
-      <div class="toggles card">
+      <div class="toggles card" id="toggles">
         <label><input type="checkbox" id="optThoughts" checked> <span data-i18n="showThoughts">أظهر خطة الآلة على اللوح</span></label>
         <label><input type="checkbox" id="optPredict" checked> <span data-i18n="predict">دع الآلة تتوقع حركتي</span></label>
       </div>
@@ -1518,7 +1517,9 @@ const T = {
     roomPeerJoined: 'صاحبك دخل، يلا العبوا', roomPeerLeft: 'صاحبك طلع من الغرفة',
     roomTaken: 'في حدا تاني فتح نفس الرابط', roomLeft: 'طلعت من الغرفة', friend: 'صاحبك',
     roomNoConnect: 'ما قدرنا نوصل. جرّب الإنترنت وافتح غرفة جديدة',
-    youAre: n => `أنت ${n}`, rematch: 'لعبة جديدة',
+    dotPrep: 'عم نجهّز…', dotConnecting: 'عم نوصل…', dotHere: 'صاحبك موجود',
+    dotAway: 'صاحبك مش موجود', dotNotYet: 'لسا ما دخل',
+    rematch: 'لعبة جديدة',
     boardLabel: 'لوح اللعبة',
     left: n => `${n} فانوساً متبقياً`, chance: (n, p) => `${n} ${p}٪`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `مؤشر فرصة الفوز مُعايَر على ${g} مباراة لعبتها الآلة ضد نفسها. خسارة السجل نزلت من ${before} إلى ${after}.`,
@@ -1586,7 +1587,9 @@ const T = {
     roomPeerJoined: 'Your friend joined — play!', roomPeerLeft: 'Your friend left the room',
     roomTaken: 'Someone else opened the same link', roomLeft: 'You left the room', friend: 'Your friend',
     roomNoConnect: 'Could not connect. Check the network and open a new room',
-    youAre: n => `You are ${n}`, rematch: 'Play again',
+    dotPrep: 'Setting up…', dotConnecting: 'Connecting…', dotHere: 'Your friend is here',
+    dotAway: 'Your friend is away', dotNotYet: 'Not joined yet',
+    rematch: 'Play again',
     boardLabel: 'Game board',
     left: n => `${n} lanterns left`, chance: (n, p) => `${n} ${p}%`, chanceUnknown: n => `${n} —`,
     calibNote: (g, before, after) => `The win-chance meter is fitted on ${g} self-play games. Log loss went from ${before} to ${after}.`,
@@ -1799,8 +1802,10 @@ function newGame(opts) {
   setTimeout(nextTurn, 250);
 }
 
-// In a room only your own colour is yours; the other side is a person on another phone.
-const isHuman = p => Online.active() ? p === Online.colour()
+// In a room only your own colour is yours; the other side is a person on another phone. And
+// until that person is actually there, neither colour is playable: a game played into an empty
+// room would land on them half finished.
+const isHuman = p => Online.active() ? (p === Online.colour() && Online.peerHere)
                    : cfg.mode === 'pvp' || (cfg.mode === 'ai' && p === cfg.human);
 const nameOf = p => Online.active() ? (p === Online.colour() ? t('you') : t('friend'))
                   : cfg.mode === 'ai' ? (p === cfg.human ? t('you') : t('machine'))
@@ -2012,6 +2017,7 @@ function updatePanel(extra) {
   document.querySelector('.meter').classList.toggle('unknown', p1 === null);
   let status;
   if (game.over) status = t('over');
+  else if (Online.active() && !Online.peerHere) status = t(Online.everHere ? 'roomGone' : 'roomWaiting');
   else if (busy && !isHuman(game.toMove)) status = t('thinking');
   else if (isHuman(game.toMove)) status = cfg.mode === 'pvp' ? t('turnOf', t(game.toMove === 1 ? 'gold' : 'turq')) : t('yourTurn');
   else status = t('turnOf', nameOf(game.toMove));
@@ -2036,10 +2042,10 @@ function updatePanel(extra) {
     bar.hidden = false;
     document.getElementById('peerRow').hidden = true;
     document.getElementById('roomCode').hidden = true;
-    document.getElementById('linkYou').textContent = '';
     document.getElementById('btnRematch').hidden = true;
     document.getElementById('btnLeave').hidden = true;
     document.getElementById('btnShare').disabled = false;
+    document.getElementById('linkTurn').hidden = false;
     document.getElementById('linkTurn').textContent = game.over
       ? t('over') : t('shareTurn', t(game.toMove === 1 ? 'gold' : 'turq'));
     document.getElementById('btnShareText').textContent = t('shareBtn');
@@ -2047,6 +2053,7 @@ function updatePanel(extra) {
     bar.hidden = true;
   }
 
+  document.getElementById('toggles').hidden = cfg.mode !== 'ai' && cfg.mode !== 'demo';
   const human = isHuman(game.toMove) && !game.over && !busy;
   document.getElementById('btnPass').disabled = !human;
   document.getElementById('btnHint').disabled = !human;
@@ -2482,7 +2489,7 @@ const Online = (function () {
         peer = on;
         if (on) everPeer = true;
         toast(t(on ? 'roomPeerJoined' : 'roomPeerLeft'));
-        repaint();
+        if (on && game) nextTurn(); else repaint();     // their arrival is what starts the turn
       },
       onState: adopt,
       onSeatTaken: () => {
@@ -2550,20 +2557,17 @@ const Online = (function () {
     const waiting = status !== 'online' || !peer;
     row.hidden = false;
     row.className = 'peer ' + (status !== 'online' ? 'waiting' : peer ? 'here' : everPeer ? 'gone' : 'waiting');
+    // Short here on purpose: the status card above already spells out what is going on, and the
+    // same sentence in two places one under the other reads like a stutter.
     document.getElementById('peerText').textContent =
-      status === 'prep' ? t('roomPrep')
-      : status === 'connecting' ? t(everPeer ? 'roomLost' : 'roomConnecting')
-      : status !== 'online' ? t('roomLost')
-      : peer ? t('roomHere')
-      : everPeer ? t('roomGone') : t('roomWaiting');
+      status === 'prep' ? t('dotPrep')
+      : status !== 'online' ? t('dotConnecting')
+      : peer ? t('dotHere')
+      : everPeer ? t('dotAway') : t('dotNotYet');
     const codeEl = document.getElementById('roomCode');
     codeEl.hidden = !waiting || !room;
     codeEl.textContent = room ? room.slice(1).toUpperCase() : '';
-    document.getElementById('linkTurn').textContent =
-      !peer && !game.history.length ? t('roomNeedTwo')
-      : game.over ? t('over')
-      : game.toMove === colour() ? t('roomYourTurn') : t('roomTheirTurn');
-    document.getElementById('linkYou').textContent = t('youAre', t(colour() === 1 ? 'gold' : 'turq'));
+    document.getElementById('linkTurn').hidden = true;   // whose turn it is belongs to the status card
     // A rematch should not need another link: the room outlives the game in it.
     const again = document.getElementById('btnRematch');
     again.hidden = !game.over;
@@ -2598,6 +2602,7 @@ const Online = (function () {
     bye() { if (link) link.leave(); },     // the page is going away; just tell the other side
     poke() { if (link) link.poke(); },     // back from the background: reconnect now, not in a minute
     get peerHere() { return peer; },
+    get everHere() { return everPeer; },
     get status() { return status; },
     get room() { return room; },
     get seat() { return seat; },
