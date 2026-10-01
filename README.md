@@ -5,7 +5,7 @@ A two-player strategy game of light and shadow.
 
 **[العب الآن · Play now](https://ahmed-r-z-adwan.github.io/fawanees/)**
 
-Made by **Ahmed Adwan** with **Claude** (Anthropic): the idea is shared, most of the code is Claude's, the direction, testing and publishing are Ahmed's.
+Idea by **Ahmed Adwan**, implementation by **Claude** (Anthropic).
 
 ---
 

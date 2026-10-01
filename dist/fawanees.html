@@ -193,7 +193,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       </div>
     </aside>
   </main>
-  <footer><span data-i18n="credit">فكرة اللعبة طُوّرت بالتعاون بين أحمد عدوان وClaude من Anthropic. القواعد والموازنة والذكاء الاصطناعي ومعظم الشيفرة كتبها Claude. أحمد وجّه العمل واختبره ونشره.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
+  <footer><span data-i18n="credit">الفكرة لأحمد عدوان، والتنفيذ لـ Claude من Anthropic.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
   <div class="install" id="installBar" role="region">
     <span class="txt" id="installText"></span>
     <button class="btn primary" id="installGo"></button>
@@ -1519,7 +1519,7 @@ const T = {
   ar: {
     title: 'فوانيس', tagline: 'لعبة استراتيجية للاعبين عن الضوء والظل', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
     showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
-    credit: 'فكرة اللعبة طُوّرت بالتعاون بين أحمد عدوان وClaude من Anthropic. القواعد والموازنة والذكاء الاصطناعي ومعظم الشيفرة كتبها Claude. أحمد وجّه العمل واختبره ونشره.', how: 'كيف صُنعت؟',
+    credit: 'الفكرة لأحمد عدوان، والتنفيذ لـ Claude من Anthropic.', how: 'كيف صُنعت؟',
     mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على نفس الجهاز',
     modeOnline: 'مع صاحبك على جهاز تاني', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
     lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
@@ -1574,7 +1574,7 @@ const T = {
 <li>بعد أول فانوس في اللعبة، يحق للاعب الثاني أن يأخذه لنفسه بدل الرد عليه. لذلك افتتح بحركة متوازنة.</li>
 </ol>
 <p>نصيحة: اضغط أي خانة مرة واحدة لترى الضوء الذي ستكسبه والفوانيس التي ستتحوّل، ثم اضغطها مرة ثانية لتلعب.</p>`,
-    howHtml: `<p>فكرة اللعبة طُوّرت بالتعاون بين أحمد عدوان وClaude. القواعد والموازنة والذكاء الاصطناعي ومعظم الشيفرة كتبها Claude، وأحمد وجّه العمل واختبره ونشره.</p>
+    howHtml: `<p>الفكرة لأحمد عدوان، والتنفيذ كاملاً لـ Claude من Anthropic.</p>
 <p>بعد تصميم النسخة الأولى من القواعد، لعبت الآلة ضد نفسها آلاف المباريات لاختبارها. هذه بعض الأشياء التي كشفتها التجارب وغيّرت القواعد:</p>
 <ol>
 <li>في النسخة الأولى كان اللاعب الأول يفوز في 72 إلى 86٪ من المباريات.</li>
@@ -1590,7 +1590,7 @@ const T = {
   en: {
     title: 'Fawanees', tagline: 'A two-player strategy game of light and shadow', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
     showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
-    credit: 'The idea was developed together by Ahmed Adwan and Claude (Anthropic). The rules, the balancing, the AI and most of the code were written by Claude. Ahmed directed the work, tested it and published it.', how: 'How was it made?',
+    credit: 'Idea by Ahmed Adwan, implementation by Claude (Anthropic).', how: 'How was it made?',
     mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players on this device',
     modeOnline: 'With a friend on another device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
     lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
@@ -1645,7 +1645,7 @@ const T = {
 <li>After the first lantern of the game, the second player may take it as their own instead of answering it. So open with a balanced move.</li>
 </ol>
 <p>Tip: tap any cell once to see the light you would gain and the lanterns that would switch, then tap it again to play.</p>`,
-    howHtml: `<p>The idea was developed together by Ahmed Adwan and Claude. The rules, the balancing, the AI and most of the code were written by Claude, and Ahmed directed the work, tested it and published it.</p>
+    howHtml: `<p>The idea is Ahmed Adwan's. The implementation is by Claude (Anthropic).</p>
 <p>After the first draft of the rules, the machine played itself thousands of times to test them. Some things those games revealed, which changed the rules:</p>
 <ol>
 <li>In the first version, the first player won 72 to 86% of games.</li>
