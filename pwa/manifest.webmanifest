@@ -1,7 +1,7 @@
 {
   "name": "فوانيس — Fawanees",
   "short_name": "فوانيس",
-  "description": "لعبة ضوء وظل اخترعها ذكاء اصطناعي. A two-player game of light and shadow, invented by an AI.",
+  "description": "لعبة استراتيجية للاعبين عن الضوء والظل. A two-player strategy game of light and shadow.",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "./",

@@ -91,8 +91,8 @@ function packIco(pngs) {
 </style>
 <div>${svg}</div>
 <div class="t"><h1>&#x641;&#x648;&#x627;&#x646;&#x64a;&#x633;</h1>
-<p>&#x644;&#x639;&#x628;&#x629; &#x636;&#x648;&#x621; &#x648;&#x638;&#x644; &#x627;&#x62e;&#x62a;&#x631;&#x639;&#x647;&#x627; &#x630;&#x643;&#x627;&#x621; &#x627;&#x635;&#x637;&#x646;&#x627;&#x639;&#x64a;</p>
-<p class="c">A game of light and shadow, invented by an AI</p></div>`, { waitUntil: 'load' });
+<p>لعبة استراتيجية للاعبين عن الضوء والظل</p>
+<p class="c">A two-player strategy game of light and shadow</p></div>`, { waitUntil: 'load' });
     const ogBuf = await og.screenshot({ type: 'png' });
     fs.writeFileSync(path.join(root, 'pwa', 'og.png'), ogBuf);
     await og.close();

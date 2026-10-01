@@ -2,7 +2,7 @@
   "name": "fawanees",
   "version": "0.4.0",
   "private": true,
-  "description": "Fawanees - a two-player game of light and shadow. Rules, balancing and AI by Claude (Anthropic); idea and publishing by Ahmed Adwan.",
+  "description": "Fawanees - a two-player strategy game of light and shadow. Concept developed with Claude (Anthropic); most code by Ahmed Adwan, with selected AI-assisted structural and refinement work.",
   "type": "commonjs",
   "scripts": {
     "build": "python build.py",

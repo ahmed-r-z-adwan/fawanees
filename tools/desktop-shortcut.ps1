@@ -31,7 +31,7 @@ $s  = $sh.CreateShortcut($temp)
 $s.TargetPath       = $target
 $s.IconLocation     = "$icon,0"
 $s.WorkingDirectory = Join-Path $root 'dist'
-$s.Description      = 'Fawanees - a two-player game of light and shadow, invented by an AI'
+$s.Description      = 'Fawanees - a two-player strategy game of light and shadow'
 $s.Save()
 
 if ([IO.File]::Exists($final)) { [IO.File]::Delete($final) }

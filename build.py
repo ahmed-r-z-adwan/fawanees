@@ -36,7 +36,7 @@ PWA_HEAD = (
     # Without these a shared link is a bare box in a chat app rather than a card.
     '<meta property="og:type" content="website">\n'
     '<meta property="og:title" content="فوانيس · Fawanees">\n'
-    '<meta property="og:description" content="لعبة ضوء وظل اخترعها ذكاء اصطناعي · A game of light and shadow, invented by an AI">\n'
+    '<meta property="og:description" content="لعبة استراتيجية للاعبين عن الضوء والظل · A two-player strategy game of light and shadow">\n'
     f'<meta property="og:url" content="{SITE}">\n'
     f'<meta property="og:image" content="{SITE}og.png">\n'
     '<meta property="og:image:width" content="1200">\n'

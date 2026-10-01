@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="فوانيس">
 <meta property="og:type" content="website">
 <meta property="og:title" content="فوانيس · Fawanees">
-<meta property="og:description" content="لعبة ضوء وظل اخترعها ذكاء اصطناعي · A game of light and shadow, invented by an AI">
+<meta property="og:description" content="لعبة استراتيجية للاعبين عن الضوء والظل · A two-player strategy game of light and shadow">
 <meta property="og:url" content="https://ahmed-r-z-adwan.github.io/fawanees/">
 <meta property="og:image" content="https://ahmed-r-z-adwan.github.io/fawanees/og.png">
 <meta property="og:image:width" content="1200">
@@ -160,7 +160,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
 <body>
 <div class="app">
   <header>
-    <div class="brand"><h1 data-i18n="title">فوانيس</h1><p data-i18n="tagline">لعبة ضوء وظل اخترعها ذكاء اصطناعي</p></div>
+    <div class="brand"><h1 data-i18n="title">فوانيس</h1><p data-i18n="tagline">لعبة استراتيجية للاعبين عن الضوء والظل</p></div>
     <div class="top-actions">
       <button class="btn" id="btnLearn" data-i18n="learn">تعلّم</button>
       <button class="btn" id="btnPuzzle" data-i18n="puzzles">ألغاز</button>
@@ -206,7 +206,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       </div>
     </aside>
   </main>
-  <footer><span data-i18n="credit">صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة والنشر: أحمد عدوان.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
+  <footer><span data-i18n="credit">طُوّرت الفكرة الأولى بالتعاون بين أحمد عدوان وClaude من Anthropic. نفّذ أحمد معظم الشيفرة وواصل تطوير المشروع، مع مساهمة Claude في بعض التعديلات البنيوية والتحسينات.</span> <a href="#" id="linkHow" data-i18n="how">كيف صُنعت؟</a></footer>
   <div class="install" id="installBar" role="region">
     <span class="txt" id="installText"></span>
     <button class="btn primary" id="installGo"></button>
@@ -1530,9 +1530,9 @@ const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: r
 // ---------------- i18n ----------------
 const T = {
   ar: {
-    title: 'فوانيس', tagline: 'لعبة ضوء وظل اخترعها ذكاء اصطناعي', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
+    title: 'فوانيس', tagline: 'لعبة استراتيجية للاعبين عن الضوء والظل', learn: 'تعلّم', puzzles: 'ألغاز', rules: 'القواعد', newGame: 'لعبة جديدة', swap: 'خذ فانوسه', pass: 'تمرير', undo: 'تراجع', hint: 'تلميح',
     showThoughts: 'أظهر خطة الآلة على اللوح', predict: 'دع الآلة تتوقع حركتي',
-    credit: 'صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: Claude من Anthropic. الفكرة والنشر: أحمد عدوان.', how: 'كيف صُنعت؟',
+    credit: 'طُوّرت الفكرة الأولى بالتعاون بين أحمد عدوان وClaude من Anthropic. نفّذ أحمد معظم الشيفرة وواصل تطوير المشروع، مع مساهمة Claude في بعض التعديلات البنيوية والتحسينات.', how: 'كيف صُنعت؟',
     mode: 'طريقة اللعب', modeAI: 'ضد الآلة', modePvP: 'لاعبان على نفس الجهاز',
     modeOnline: 'مع صاحبك على جهاز تاني', modeDemo: 'شاهد الآلة ضد نفسها', level: 'مستوى الآلة',
     lv0: 'مبتدئ', lv1: 'ماهر', lv2: 'أستاذ', lv3: 'العرّاف', youPlay: 'أنت تلعب', first: 'أولاً (الذهبي)', second: 'ثانياً (الفيروزي)', cancel: 'إلغاء', start: 'ابدأ',
@@ -1587,7 +1587,7 @@ const T = {
 <li>بعد أول فانوس في اللعبة، يحق للاعب الثاني أن يأخذه لنفسه بدل الرد عليه. لذلك افتتح بحركة متوازنة.</li>
 </ol>
 <p>نصيحة: اضغط أي خانة مرة واحدة لترى الضوء الذي ستكسبه والفوانيس التي ستتحوّل، ثم اضغطها مرة ثانية لتلعب.</p>`,
-    howHtml: `<p>القواعد والاسم والموازنة والذكاء الاصطناعي كلها من صنع Claude، نموذج ذكاء اصطناعي من Anthropic.</p>
+    howHtml: `<p>طُوّرت الفكرة الأولى بالتعاون بين أحمد عدوان وClaude. نفّذ أحمد معظم الشيفرة وواصل تطوير المشروع، مع مساهمة Claude في بعض التعديلات البنيوية والتحسينات.</p>
 <p>بعد تصميم النسخة الأولى من القواعد، لعبت الآلة ضد نفسها آلاف المباريات لاختبارها. هذه بعض الأشياء التي كشفتها التجارب وغيّرت القواعد:</p>
 <ol>
 <li>في النسخة الأولى كان اللاعب الأول يفوز في 72 إلى 86٪ من المباريات.</li>
@@ -1601,9 +1601,9 @@ const T = {
 <p>هذه نسخة تجريبية.</p>`,
   },
   en: {
-    title: 'Fawanees', tagline: 'A game of light and shadow, invented by an AI', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
+    title: 'Fawanees', tagline: 'A two-player strategy game of light and shadow', learn: 'Learn', puzzles: 'Puzzles', rules: 'Rules', newGame: 'New game', swap: 'Take their lantern', pass: 'Pass', undo: 'Undo', hint: 'Hint',
     showThoughts: "Show the machine's plan on the board", predict: 'Let the machine predict my move',
-    credit: 'Rules, balancing and AI by Claude (Anthropic). Idea and publishing by Ahmed Adwan.', how: 'How was it made?',
+    credit: 'Concept developed collaboratively by Ahmed Adwan and Claude (Anthropic). Most implementation by Ahmed Adwan, with selected AI-assisted structural and refinement work.', how: 'How was it made?',
     mode: 'Mode', modeAI: 'Against the machine', modePvP: 'Two players on this device',
     modeOnline: 'With a friend on another device', modeDemo: 'Watch the machine play itself', level: 'Machine level',
     lv0: 'Novice', lv1: 'Skilled', lv2: 'Master', lv3: 'Oracle', youPlay: 'You play', first: 'First (gold)', second: 'Second (turquoise)', cancel: 'Cancel', start: 'Start',
@@ -1658,7 +1658,7 @@ const T = {
 <li>After the first lantern of the game, the second player may take it as their own instead of answering it. So open with a balanced move.</li>
 </ol>
 <p>Tip: tap any cell once to see the light you would gain and the lanterns that would switch, then tap it again to play.</p>`,
-    howHtml: `<p>The rules, the name, the balancing and the AI were all made by Claude, an AI model from Anthropic.</p>
+    howHtml: `<p>The initial concept was developed collaboratively with Claude. Ahmed Adwan implemented most of the code and continued developing the project, with Claude contributing to selected structural changes, refinements, and parts of the development.</p>
 <p>After the first draft of the rules, the machine played itself thousands of times to test them. Some things those games revealed, which changed the rules:</p>
 <ol>
 <li>In the first version, the first player won 72 to 86% of games.</li>
