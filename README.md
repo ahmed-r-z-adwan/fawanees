@@ -1,14 +1,13 @@
 # فوانيس · Fawanees
 
-**لعبة ضوء وظل اخترعها ذكاء اصطناعي.**
-A two-player game of light and shadow, invented by an AI.
+**لعبة استراتيجية للاعبين عن الضوء والظل.**
+A two-player strategy game of light and shadow.
 
 **[العب الآن · Play now](https://ahmed-r-z-adwan.github.io/fawanees/)**
 
-صمّم القواعد ووازنها وبرمج الذكاء الاصطناعي: **Claude** من Anthropic.
-الفكرة والنشر: **أحمد عدوان**.
+طُوّرت الفكرة الأولى بالتعاون بين **أحمد عدوان** و**Claude**. نفّذ أحمد معظم الشيفرة وواصل تطوير المشروع، مع مساهمة Claude في تغييرات بنيوية وتحسينات محددة وأجزاء من عملية التطوير.
 
-Rules, balancing and AI by **Claude** (Anthropic). Idea and publishing by **Ahmed Adwan**.
+The initial concept was developed collaboratively with **Claude**. **Ahmed Adwan** implemented most of the code and continued developing the project, with Claude contributing to selected structural changes, refinements, and parts of the development.
 
 > This is not an official Anthropic product and uses none of Anthropic's branding.
 

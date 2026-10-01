@@ -1,6 +1,6 @@
 # Fawanees (فوانيس)
 
-An original two-player strategy game of light and shadow. The rules, the balancing experiments and the AI were designed by Claude (Anthropic's AI) in a chat with Ahmed Adwan, who had the idea and is the publisher. This folder is the prototype handed over for further development.
+An original two-player strategy game of light and shadow. Ahmed Adwan and Claude developed the initial concept collaboratively. Ahmed implemented most of the code and continued the project's development, with Claude contributing to selected structural changes, refinements, and parts of the development. This document records the game's rules and development notes.
 
 ## Current rules (v0.3)
 
@@ -86,5 +86,5 @@ blocking), `perf.js` (answer times under CPU throttling), `serve.js`, `makeIcons
 - Every number shown to players (win chance, strength, statistics) must come from a measurement you actually ran, and `docs/` must say how it was measured. In practice that means the page reads them out of a generated file, and a test asserts the page and the study agree.
 - Two traps that have already cost real time, both written up in `docs/METHOD.md`: a self-play harness must give both sides the same number of unsearched opening moves, or the measured win rate moves by fifteen points; and alpha-beta only reports an exact value for its best move, so comparing root scores needs `rootScoresExact`.
 - Prefer enumerating a whole population to sampling it where that is affordable. The opening study plays every reply to every opening rather than a random sample of them, which removes sampling error entirely.
-- Keep the credit line: rules, balancing and AI by Claude (Anthropic); idea and publishing by Ahmed Adwan. Do not use Anthropic's logos or present the game as an official Anthropic product.
+- Keep the credit accurate: Ahmed and Claude developed the initial concept collaboratively; Ahmed implemented most of the code and continued development, while Claude contributed to selected structural changes, refinements, and parts of the development. Do not use Anthropic's logos or present the game as an official Anthropic product.
 - Commit in small steps with clear messages.
