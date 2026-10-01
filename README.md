@@ -5,11 +5,7 @@ A two-player strategy game of light and shadow.
 
 **[العب الآن · Play now](https://ahmed-r-z-adwan.github.io/fawanees/)**
 
-فكرة اللعبة طُوّرت بالتعاون بين **أحمد عدوان** و**Claude**. القواعد والموازنة والذكاء الاصطناعي ومعظم الشيفرة كتبها Claude. أحمد وجّه العمل واختبره ونشره.
-
-The idea was developed together by **Ahmed Adwan** and **Claude**. The rules, the balancing, the AI and most of the code were written by Claude. Ahmed directed the work, tested it and published it.
-
-> This is not an official Anthropic product and uses none of Anthropic's branding.
+Made by **Ahmed Adwan** with **Claude** (Anthropic): the idea is shared, most of the code is Claude's, the direction, testing and publishing are Ahmed's.
 
 ---
 
