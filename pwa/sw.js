@@ -1,7 +1,7 @@
 // Service worker for the installable copy. The whole game is one HTML file, so "offline" means
 // keeping that file, the manifest and the icons; the fonts are picked up the first time they load.
 // VERSION is rewritten by build.py from a hash of the page, so a new build replaces the old cache.
-const VERSION = 'c4030401a0fc';
+const VERSION = '14f98399c9e5';
 const SHELL = `fawanees-${VERSION}`;
 const FONTS = 'fawanees-fonts';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest',

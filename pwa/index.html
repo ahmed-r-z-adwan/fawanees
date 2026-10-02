@@ -629,9 +629,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     return { R, N, cells, index, rayStart, rayLen, rayCells: Int32Array.from(flat), neighbors };
   }
 
-  // Scratch buffers per geometry
+  // Scratch buffers per geometry. `waves` is how many capture waves the last applyMove(Inc) into
+  // this scratch ran: the search extends on chains and needs to know a cascade from a single flip.
   function makeScratch(N) {
-    return { l1: new Int8Array(N), l2: new Int8Array(N), s1: new Int8Array(N), s2: new Int8Array(N) };
+    return { l1: new Int8Array(N), l2: new Int8Array(N), s1: new Int8Array(N), s2: new Int8Array(N), waves: 0 };
   }
 
   // light[p][cell]: beams of player p reaching empty cell; sight[p][lantern]: lanterns of p that see this lantern
@@ -676,7 +677,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     board[j] = p;
     const q = 3 - p, N = geo.N, K = rules.K, M = rules.M || 1;
     const waves = recordWaves ? [] : null;
-    let total = 0;
+    let total = 0, nw = 0;
     const flips = [];
     for (;;) {
       computeLight(geo, board, sc);
@@ -688,9 +689,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       if (flips.length === 0) break;
       const to = rules.capture === 'remove' ? 0 : p;
       for (const i of flips) board[i] = to;
-      total += flips.length;
+      total += flips.length; nw++;
       if (waves) waves.push(flips.slice());
     }
+    sc.waves = nw;
     // light is now valid for the final board
     return recordWaves ? waves : total;
   }
@@ -758,16 +760,17 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     const q = 3 - p, N = geo.N, K = rules.K, M = rules.M || 1;
     const sp = p === 1 ? sc.s1 : sc.s2, sq = p === 1 ? sc.s2 : sc.s1;
     const waves = recordWaves ? [] : null;
-    let total = 0;
+    let total = 0, nw = 0;
     const flips = [];
     for (;;) {
       flips.length = 0;
       for (let i = 0; i < N; i++) if (board[i] === q && sp[i] >= K && sp[i] >= sq[i] + M) flips.push(i);
       if (flips.length === 0) break;
       for (let k = 0; k < flips.length; k++) flipIncremental(geo, board, sc, flips[k], q, p);
-      total += flips.length;
+      total += flips.length; nw++;
       if (waves) waves.push(flips.slice());
     }
+    sc.waves = nw;
     return recordWaves ? waves : total;
   }
 
@@ -884,6 +887,20 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     constructor(geo, rules, weights) {
       this.geo = geo; this.rules = rules;
       this.w = Object.assign({ mob: 0.35, tempo: 0.5 }, weights || {});
+      // Search switches, kept apart from the evaluation weights so each can be measured on and off.
+      // All on by default; pass any of them in `weights` to change or disable one.
+      //   quiesce      search on with capturing moves instead of returning a static value
+      //   qPly         how far a capture sequence may run past the horizon
+      //   qWidth       how many capturing moves a quiescence node may look at
+      //   extend       a capturing move buys depth inside the main search
+      //   extendFlips  how many lanterns a single-wave capture has to flip to earn a ply, 0 = never
+      //                (a capture that cascaded asks for two plies, whatever this says)
+      //   extendMax    extension plies available per path, and the most any one move can buy
+      //   extendMin    the shallowest depth that may still extend; 2 leaves the last ply to
+      //                quiescence instead of re-opening all ninety-one moves there
+      //   captureFirst order capturing moves ahead of the history heuristic
+      const dflt = { quiesce: true, qPly: 4, qWidth: 6, extend: true, extendFlips: 0, extendMax: 1, extendMin: 1, captureFirst: true };
+      this.s = {}; for (const k in dflt) this.s[k] = (weights && weights[k] !== undefined) ? weights[k] : dflt[k];
       const N = geo.N;
       this.N = N;
       this.maxPly = 80;
@@ -892,6 +909,11 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         this.boards.push(new Int8Array(N)); this.moves.push(new Int32Array(N + 1)); this.scs.push(makeScratch(N));
       }
       this.orderKeys = []; for (let i = 0; i <= this.maxPly + 1; i++) this.orderKeys.push(new Float64Array(N + 1));
+      // markCaptures writes here and the caller reads it before it descends, so one buffer is
+      // enough: a child node overwrites it only after its parent is finished with it.
+      this.gain = new Int16Array(N); this.pending = 0;
+      this.lastFlips = 0; this.lastWaves = 0;             // what the last descend() set off
+      this.extLeft = new Int8Array(this.maxPly + 2);      // extension plies still available per path
       // Zobrist (two 32-bit halves)
       let seed = 0x9E3779B9;
       const rnd = () => { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed >>> 0; };
@@ -940,8 +962,56 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       const nb = this.boards[ply + 1], nsc = this.scs[ply + 1];
       nb.set(board);
       copyLight(nsc, sc);
-      if (m >= 0) applyMoveInc(this.geo, nb, side, m, this.rules, nsc, false);
+      if (m >= 0) { this.lastFlips = applyMoveInc(this.geo, nb, side, m, this.rules, nsc, false); this.lastWaves = nsc.waves; }
+      else { this.lastFlips = 0; this.lastWaves = 0; }
       return nb;
+    }
+    // Which placements flip something, exactly, without playing them out.
+    //
+    // A placement changes the sight counts in only two ways: the new lantern is seen by the nearest
+    // lantern in each of its six directions (+1 for the mover there), and it blocks the one beam
+    // that used to pass through the cell (-1 for that beam's colour, on whatever stood behind it).
+    // So an enemy lantern can only be flipped from a cell on one of its own six rays, out to the
+    // first lantern -- at most twelve cells. Walking targets instead of moves is what makes this
+    // cheap enough to run at every node; `legalMoves` costs about the same.
+    //
+    // Leaves the first-wave flip count per cell in this.gain, and in this.pending the flips that
+    // happen wherever the mover plays: a lantern already over the line before the move is taken by
+    // any placement at all, so every move is a capture in that position.
+    markCaptures(board, side, sc) {
+      const N = this.N, rs = this.geo.rayStart, rl = this.geo.rayLen, rc = this.geo.rayCells;
+      const range = this.geo.range || 99, K = this.rules.K, M = this.rules.M || 1, q = 3 - side;
+      const sp = side === 1 ? sc.s1 : sc.s2, sq = side === 1 ? sc.s2 : sc.s1;
+      const gain = this.gain;
+      gain.fill(0);
+      let pending = 0, any = 0;
+      for (let i = 0; i < N; i++) {
+        if (board[i] !== q) continue;
+        const a = sp[i], b = sq[i];
+        if (a >= K && a >= b + M) { pending++; continue; }
+        if (a + 1 < K) continue;                       // one more seer still would not be enough
+        for (let d = 0; d < 6; d++) {
+          const k0 = rs[i * 6 + d], len = rl[i * 6 + d] < range ? rl[i * 6 + d] : range;
+          for (let k = 0; k < len; k++) {
+            const c = rc[k0 + k];
+            if (board[c] !== 0) break;                 // a lantern here, and it hides what is behind
+            let da = 1, db = 0;                        // the placement itself sees i
+            const back = range - (k + 1);              // only a beam from this close still reached i
+            if (back > 0) {
+              const b0 = rs[c * 6 + d], blen = rl[c * 6 + d] < back ? rl[c * 6 + d] : back;
+              for (let t = 0; t < blen; t++) {
+                const x = rc[b0 + t];
+                if (board[x] === 0) continue;
+                if (board[x] === side) da--; else db--; // that beam now stops on the new lantern
+                break;
+              }
+            }
+            if (a + da >= K && a + da >= b + db + M) { gain[c]++; any++; }
+          }
+        }
+      }
+      this.pending = pending;
+      return pending > 0 || any > 0;
     }
     // One search, run one iteration at a time. The caller decides when the next iteration
     // may start and how long it may take, which is what lets the same search run inside a
@@ -965,6 +1035,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       const out = [];
       for (const m of list) {
         const b1 = this.descend(b0, sc0, 0, side, m);
+        this.extLeft[1] = this.s.extendMax;
         const v = -this.negamax(b1, 3 - side, depth - 1, -Infinity, Infinity, 1, false,
                                 side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
         if (this.stop) break;
@@ -996,7 +1067,13 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       const myH = side === 1 ? h1 : h2, opH = side === 1 ? h2 : h1;
       let n = myH > 0 ? legalMoves(this.geo, board, side, sc, moves, this.rules.restrict) : 0;
       if (n === 0 && (prevPass || opH <= 0 || countLegal(this.geo, board, 3 - side, sc, this.rules.restrict) === 0)) return this.terminalValue(board, side, sc);
-      if (depth <= 0 || ply >= this.maxPly) return this.evalWithLight(board, side, sc) + this.w.tempo;
+      // The horizon. Stopping here with a capture on the table is the whole problem: a chain
+      // detonates one ply past the end of the search and the static value calls the position
+      // healthy. So hand over to quiescence, which carries on with capturing moves only.
+      if (depth <= 0 || ply >= this.maxPly) {
+        if (this.s.quiesce) return this.quiesce(board, side, alpha, beta, ply, prevPass, h1, h2, this.s.qPly, n);
+        return this.evalWithLight(board, side, sc) + this.w.tempo;
+      }
       // TT probe
       const [ha, hb] = this.hash(board, side, prevPass, h1, h2);
       const slot = ha & this.ttMask;
@@ -1010,11 +1087,26 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
           if (f === 2 && v <= alpha) return v;
         }
       }
-      // ordering: TT move first, then history
+      // ordering: TT move first, then captures biggest first, then history.
+      // A capture is the only move that shifts the score by more than a point or two, so trying
+      // them before the quiet moves is where the cuts come from -- and the cuts are what pays for
+      // quiescence. The capture bonus sits a tier above the history scores, which rise by at most
+      // depth*depth per cutoff from zero at the start of every search and never reach 1e9.
       const keys = this.orderKeys[ply];
       const hist = this.history, base = side * this.N;
+      let gain = null, pend = 0;
+      if (this.s.captureFirst) { this.markCaptures(board, side, sc); gain = this.gain; pend = this.pending; }
       moves[n] = -1; n++; // pass is a move; ordered last unless the TT prefers it
-      for (let i = 0; i < n; i++) { const m = moves[i]; keys[i] = (m === ttMove ? 1e12 : 0) + (m < 0 ? -1 : hist[base + m]); }
+      for (let i = 0; i < n; i++) {
+        const m = moves[i];
+        let k = m === ttMove ? 1e12 : 0;
+        if (m < 0) k -= 1;
+        else {
+          k += hist[base + m];
+          if (gain !== null) { const g = gain[m] + pend; if (g > 0) k += 1e9 + 1e4 * g; }
+        }
+        keys[i] = k;
+      }
       // insertion sort (n <= 91)
       for (let i = 1; i < n; i++) {
         const km = keys[i], mm = moves[i]; let k = i - 1;
@@ -1022,13 +1114,25 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         keys[k + 1] = km; moves[k + 1] = mm;
       }
       const alpha0 = alpha;
+      const ext = this.s.extend ? this.extLeft[ply] : 0;
       let bestVal = -Infinity, bestMove = moves[0];
       for (let i = 0; i < n; i++) {
         const m = moves[i];
         const nb = this.descend(board, sc, ply, side, m);
+        // A capture is not a position to stop looking at: a chain is the whole tactical content of
+        // this game, so a capturing move buys a ply, and one that actually cascaded buys two. The
+        // budget is spent per path, so the tree stays finite and a deep line of quiet moves cannot
+        // be pushed past the end of the search by tactics somewhere else.
+        let e = 0;
+        if (ext > 0 && this.lastFlips > 0 && depth >= this.s.extendMin) {
+          if (this.lastWaves >= 2) e = 2;                           // it cascaded: worth two plies
+          else if (this.s.extendFlips > 0 && this.lastFlips >= this.s.extendFlips) e = 1;   // a single wave, if big enough
+          if (e > ext) e = ext;
+        }
+        this.extLeft[ply + 1] = ext - e;
         let v;
         if (m < 0) v = prevPass ? this.terminalValue(nb, side, this.scs[ply + 1]) : -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, true, h1, h2);
-        else v = -this.negamax(nb, 3 - side, depth - 1, -beta, -alpha, ply + 1, false, side === 1 ? h1 - 1 : h1, side === 2 ? h2 - 1 : h2);
+        else v = -this.negamax(nb, 3 - side, depth - 1 + e, -beta, -alpha, ply + 1, false, side === 1 ? h1 - 1 : h1, side === 2 ? h2 - 1 : h2);
         if (this.stop) return 0;
         if (v > bestVal) { bestVal = v; bestMove = m; }
         if (v > alpha) alpha = v;
@@ -1038,6 +1142,59 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       this.ttKey[slot] = hb; this.ttDepth[slot] = depth; this.ttVal[slot] = bestVal; this.ttMove[slot] = bestMove;
       this.ttFlag[slot] = bestVal <= alpha0 ? 2 : bestVal >= beta ? 1 : 0;
       return bestVal;
+    }
+    // Quiescence: capturing moves only, until the position is quiet.
+    //
+    // Standing pat is the floor -- nobody is obliged to capture in this game, so the static value is
+    // always an option -- and it is also the fail-high test, so a position with nothing to gain
+    // costs exactly what the static value cost before. Captures resolve inside the placement, in
+    // waves, so there is no answer to one once it has been played: that is why searching them
+    // alone is sound here, and why the side that is about to lose a chain cannot talk its way out
+    // with a quiet move.
+    //
+    // Two caps keep it from running away: `qPly` on how far a sequence may run, and `qWidth` on how
+    // many captures a node may try -- needed because a lantern already over the line before the move
+    // is taken by *any* placement, which would otherwise put all ninety-one cells in the list.
+    //
+    // `n` is the number of legal moves already sitting in this.moves[ply], or -1 to generate them.
+    // The node the main search hands over has been counted and tested already; a node that
+    // generates its own is a new one and counts itself.
+    quiesce(board, side, alpha, beta, ply, prevPass, h1, h2, qply, n) {
+      const sc = this.scs[ply], moves = this.moves[ply];
+      const myH = side === 1 ? h1 : h2, opH = side === 1 ? h2 : h1;
+      if (n < 0) {
+        this.nodes++;
+        if ((this.nodes & 1023) === 0 && (Date.now() > this.deadline || this.nodes > this.nodeLimit)) this.stop = true;
+        if (this.stop) return 0;
+        n = myH > 0 ? legalMoves(this.geo, board, side, sc, moves, this.rules.restrict) : 0;
+        if (n === 0 && (prevPass || opH <= 0 || countLegal(this.geo, board, 3 - side, sc, this.rules.restrict) === 0)) return this.terminalValue(board, side, sc);
+      }
+      const stand = this.evalWithLight(board, side, sc) + this.w.tempo;
+      if (stand >= beta || qply <= 0 || n === 0 || ply >= this.maxPly) return stand;
+      if (!this.markCaptures(board, side, sc)) return stand;   // quiet already, and this is the common case
+      const gain = this.gain, pend = this.pending, keys = this.orderKeys[ply];
+      let nc = 0;   // keep only the capturing moves, in place: nc never runs ahead of i
+      for (let i = 0; i < n; i++) { const m = moves[i], g = gain[m] + pend; if (g > 0) { moves[nc] = m; keys[nc] = g; nc++; } }
+      if (nc === 0) return stand;
+      for (let i = 1; i < nc; i++) {   // biggest first (insertion sort, nc <= 91)
+        const km = keys[i], mm = moves[i]; let k = i - 1;
+        while (k >= 0 && keys[k] < km) { keys[k + 1] = keys[k]; moves[k + 1] = moves[k]; k--; }
+        keys[k + 1] = km; moves[k + 1] = mm;
+      }
+      const w = nc < this.s.qWidth ? nc : this.s.qWidth;
+      let best = stand;
+      if (stand > alpha) alpha = stand;
+      for (let i = 0; i < w; i++) {
+        const m = moves[i];
+        const nb = this.descend(board, sc, ply, side, m);
+        const v = -this.quiesce(nb, 3 - side, -beta, -alpha, ply + 1, false,
+                                side === 1 ? h1 - 1 : h1, side === 2 ? h2 - 1 : h2, qply - 1, -1);
+        if (this.stop) return 0;
+        if (v > best) best = v;
+        if (v > alpha) alpha = v;
+        if (alpha >= beta) break;
+      }
+      return best;
     }
     extractPV(board, side, depth, prevPass, firstMove, H1, H2) {
       const pv = []; const b = board.slice(); let s = side, pp = !!prevPass; const sc = makeScratch(this.N);
@@ -1106,6 +1263,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       for (let k = 0; k < rootMoves.length; k++) {
         const m = rootMoves[k].move;
         const b1 = E.descend(b0, E.scs[0], 0, side, m);
+        E.extLeft[1] = E.s.extendMax;   // a fresh extension budget down every root move
         let v;
         if (m < 0) v = this.prevPass ? E.terminalValue(b1, side, E.scs[1]) : -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, true, H1, H2);
         else v = -E.negamax(b1, 3 - side, depth - 1, -beta, -alpha, 1, false, side === 1 ? H1 - 1 : H1, side === 2 ? H2 - 1 : H2);
