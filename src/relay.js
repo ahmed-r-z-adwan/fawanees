@@ -122,6 +122,10 @@
     // the will from the connection they just dropped arrives late -- often after the new one has
     // already said hello. Without this, every refresh on their phone reads as "they left".
     let peerToken = null, warnedAbout = null;
+    // Whether the broker has told us anything at all about the other seat. A retained "gone" is
+    // still news: it means they were in this room and left, which is not the same as never having
+    // come, and the person who opened the link deserves to be told which.
+    let peerKnown = false;
 
     const send = (bytes) => { if (ws && ws.readyState === 1) ws.send(bytes); };
 
@@ -209,6 +213,7 @@
         // A goodbye only counts from the connection that said hello.
         if (!on && peerToken && who && who !== peerToken) return;
         if (on) peerToken = who;
+        peerKnown = true;
         if (on !== peerOnline) { peerOnline = on; say('onPeer', on); }
       } else if (topic === mine) {
         // Someone else opened this link and sat in my chair. Their heartbeat repeats; the news
@@ -241,13 +246,12 @@
         const sock = ws;
         ws = null; live = false;
         if (sock) {
-          sock.onmessage = null; sock.onclose = null; sock.onerror = () => {};
-          // Closing a socket that is still opening is reported as a console error by WebKit, and
-          // a host racing the brokers closes two of them at exactly that moment -- an error in
-          // the page's console for something that is working as intended. Let it finish opening
-          // and close it then; nothing is ever sent on it either way.
-          if (sock.readyState === 0) sock.onopen = () => { try { sock.close(); } catch (e) {} };
-          else { try { sock.close(); } catch (e) {} }
+          // Close it now, even mid-handshake. Waiting for it to open first was tried, to keep
+          // the console quiet, and is worse: the socket dangles against a free broker until the
+          // browser times the handshake out, which it then reports anyway. Abandoning a
+          // connection attempt is a network event, not a fault in the page.
+          sock.onmessage = null; sock.onclose = null; sock.onopen = null; sock.onerror = () => {};
+          try { sock.close(); } catch (e) {}
         }
         if (peerOnline) { peerOnline = false; say('onPeer', false); }
         say('onStatus', 'offline');
@@ -259,6 +263,7 @@
       poke() { if (!closed && !live && !ws) { clearTimeout(retry); tries = 0; open(); } },
       get online() { return live; },
       get peerOnline() { return peerOnline; },
+      get peerKnown() { return peerKnown; },
       token, seat, room: o.room, url,
     };
   }

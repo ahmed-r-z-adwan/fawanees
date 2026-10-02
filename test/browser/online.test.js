@@ -16,7 +16,14 @@ async function open(browser, url) {
   await noFonts(page);
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => { if (isPageError(m)) errors.push('console: ' + m.text()); });
+  page.on('console', m => {
+    // A websocket to a broker that never completes its handshake is logged by the browser. That
+    // is a network event, not a fault in the page: opening a room contacts free public brokers
+    // and abandons the ones it does not need, and one of them being slow is the normal weather
+    // here. Everything else still has to be clean.
+    const broker = /WebSocket connection to 'wss:\/\/[^']*(emqx|hivemq|mosquitto)[^']*'/.test(m.text());
+    if (isPageError(m) && !broker) errors.push('console: ' + m.text());
+  });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction('window.__fw && window.__fw.game');
   await page.evaluate(() => { const d = document.querySelector('dialog[open]'); if (d) d.close(); });

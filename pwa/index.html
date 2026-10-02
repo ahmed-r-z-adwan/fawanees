@@ -448,6 +448,10 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
     // the will from the connection they just dropped arrives late -- often after the new one has
     // already said hello. Without this, every refresh on their phone reads as "they left".
     let peerToken = null, warnedAbout = null;
+    // Whether the broker has told us anything at all about the other seat. A retained "gone" is
+    // still news: it means they were in this room and left, which is not the same as never having
+    // come, and the person who opened the link deserves to be told which.
+    let peerKnown = false;
 
     const send = (bytes) => { if (ws && ws.readyState === 1) ws.send(bytes); };
 
@@ -535,6 +539,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         // A goodbye only counts from the connection that said hello.
         if (!on && peerToken && who && who !== peerToken) return;
         if (on) peerToken = who;
+        peerKnown = true;
         if (on !== peerOnline) { peerOnline = on; say('onPeer', on); }
       } else if (topic === mine) {
         // Someone else opened this link and sat in my chair. Their heartbeat repeats; the news
@@ -567,13 +572,12 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
         const sock = ws;
         ws = null; live = false;
         if (sock) {
-          sock.onmessage = null; sock.onclose = null; sock.onerror = () => {};
-          // Closing a socket that is still opening is reported as a console error by WebKit, and
-          // a host racing the brokers closes two of them at exactly that moment -- an error in
-          // the page's console for something that is working as intended. Let it finish opening
-          // and close it then; nothing is ever sent on it either way.
-          if (sock.readyState === 0) sock.onopen = () => { try { sock.close(); } catch (e) {} };
-          else { try { sock.close(); } catch (e) {} }
+          // Close it now, even mid-handshake. Waiting for it to open first was tried, to keep
+          // the console quiet, and is worse: the socket dangles against a free broker until the
+          // browser times the handshake out, which it then reports anyway. Abandoning a
+          // connection attempt is a network event, not a fault in the page.
+          sock.onmessage = null; sock.onclose = null; sock.onopen = null; sock.onerror = () => {};
+          try { sock.close(); } catch (e) {}
         }
         if (peerOnline) { peerOnline = false; say('onPeer', false); }
         say('onStatus', 'offline');
@@ -585,6 +589,7 @@ canvas#learnBoard, canvas#puzzleBoard { width: 100%; aspect-ratio: 11 / 12; disp
       poke() { if (!closed && !live && !ws) { clearTimeout(retry); tries = 0; open(); } },
       get online() { return live; },
       get peerOnline() { return peerOnline; },
+      get peerKnown() { return peerKnown; },
       token, seat, room: o.room, url,
     };
   }
@@ -2528,8 +2533,9 @@ const LinkGame = (function () {
 // anywhere: the room is a random name, and the only thing published into it is the move list.
 const Online = (function () {
   const RELAY = window.FawaneesRelay;
-  const HOST_WAIT = 26000;                 // nothing has answered by now, so nothing is going to
-  let link = null, room = null, seat = null, probes = [];
+  const HOST_WAIT = 30000;                 // nothing has answered by now, so nothing is going to
+  const PROBE_GAP = 2500;                  // measured: a healthy broker answers in about 1.5 s
+  let link = null, room = null, seat = null, probes = [], probeTimers = [];
   let status = 'off', peer = false, everPeer = false, hostTimer = null, swapped = false;
   // The relay says "connecting" both for the first attempt and for every reconnection after a
   // drop. Only the second of those is a connection that was lost.
@@ -2537,7 +2543,11 @@ const Online = (function () {
 
   // True from the moment a room starts being opened, not from when it succeeds: the card has to
   // show "setting up" and the board has to stay locked in between.
-  const active = () => !!link || probes.length > 0;
+  const active = () => !!link || probes.length > 0 || probeTimers.length > 0;
+  // They have been in this room if we have seen them here, or if the broker is still holding the
+  // goodbye from when they left -- which is the case for whoever opens the link after the person
+  // who sent it has already gone.
+  const knownAway = () => everPeer || !!(link && link.peerKnown);
   const colour = () => (seat === 'a' ? 1 : 2);
   // Not origin + pathname: a page opened straight from disk has no origin, and the single-file
   // copy is a real way people run this.
@@ -2551,6 +2561,8 @@ const Online = (function () {
   const seatFor = (r) => { try { return sessionStorage.getItem(seatKey(r)); } catch (e) { return null; } };
 
   function dropProbes(keep) {
+    for (const t of probeTimers) clearTimeout(t);
+    probeTimers = [];
     for (const p of probes) if (p !== keep) p.leave();
     probes = [];
   }
@@ -2615,16 +2627,24 @@ const Online = (function () {
     stop();
     swapped = false;
     status = 'prep';
+    // Staggered, not all at once. The brokers answer in about a second and a half when they are
+    // well, so the first one usually wins before the second is even tried and nothing has to be
+    // thrown away -- which is both lighter on free services and quieter, since abandoning a
+    // half-open socket is a thing browsers log. The stagger is short enough that a sulking broker
+    // still costs seconds rather than the twenty it can take to answer.
     RELAY.BROKERS.forEach((_, i) => {
-      const r = RELAY.newRoomId(i);
-      let self = null;
-      self = RELAY.join(Object.assign(handlers(r, 'a', () => !!self && link === self), {
-        onStatus: (st) => {
-          if (!link && st === 'online') { link = self; take(r, 'a'); dropProbes(self); }
-          if (link && link === self) { status = st; if (st === 'online') everOnline = true; repaint(); }
-        },
-      }));
-      probes.push(self);
+      probeTimers.push(setTimeout(() => {
+        if (link) return;                   // somebody already answered; this one is not needed
+        const r = RELAY.newRoomId(i);
+        let self = null;
+        self = RELAY.join(Object.assign(handlers(r, 'a', () => !!self && link === self), {
+          onStatus: (st) => {
+            if (!link && st === 'online') { link = self; take(r, 'a'); dropProbes(self); }
+            if (link && link === self) { status = st; if (st === 'online') everOnline = true; repaint(); }
+          },
+        }));
+        probes.push(self);
+      }, i * PROBE_GAP));
     });
     hostTimer = setTimeout(() => {
       if (link) return;
@@ -2711,7 +2731,7 @@ const Online = (function () {
       status === 'prep' ? t('dotPrep')
       : status !== 'online' ? t('dotConnecting')
       : peer ? t('dotHere')
-      : everPeer ? t('dotAway') : t('dotNotYet');
+      : knownAway() ? t('dotAway') : t('dotNotYet');
     const codeEl = document.getElementById('roomCode');
     codeEl.hidden = !waiting || !room;
     codeEl.textContent = room ? room.toUpperCase() : '';
@@ -2743,15 +2763,16 @@ const Online = (function () {
     valid: (raw) => CODE.test(tidy(raw)),
     roomInUrl: () => (location.search.match(/[?&]r=([A-Za-z0-9]+)/) || [])[1] || null,
     leave() {
-      if (!link && !probes.length) return;   // probes are a room too, and they must be closed
+      if (!link && !probes.length && !probeTimers.length) return;   // a room being opened is one
       stop();
       history.replaceState(null, '', location.pathname);
       toast(t('roomLeft'));
     },
     bye() { if (link) link.leave(); for (const p of probes) p.leave(); },   // going away: say so
+    get probing() { return probes.length > 0 || probeTimers.length > 0; },
     poke() { if (link) link.poke(); },     // back from the background: reconnect now, not in a minute
     get peerHere() { return peer; },
-    get everHere() { return everPeer; },
+    get everHere() { return knownAway(); },
     get everOnline() { return everOnline; },
     get status() { return status; },
     get room() { return room; },
